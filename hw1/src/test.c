@@ -6,15 +6,15 @@
 extern char **getline();
 
 main() {
-  int i;
-  char **args; 
+	int i;
+	char **args; 
 
-  while(1) {
-    args = getline();
-    for(i = 0; args[i] != NULL; i++) {
-      printf("Argument %d: %s\n", i, args[i]);
-    }
-  }
+	while(1) {
+		args = getline();
+		for(i = 0; args[i] != NULL; i++) {
+			printf("Argument %d: %s\n", i, args[i]);
+		}
+	}
 }
 
 

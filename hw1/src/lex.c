@@ -11,11 +11,11 @@ SPECIAL	[()><|&;*]
 	_argcount = 0; 
 	_args[0] = NULL; 
 
-{WORD}|{SPECIAL} {  
-	  if(_argcount < _numargs-1) {
-	    _args[_argcount++] = (char *)strdup(yytext);
-	    _args[_argcount] = NULL;
-	  }
+{WORD}|{SPECIAL} {	
+		if(_argcount < _numargs-1) {
+			_args[_argcount++] = (char *)strdup(yytext);
+			_args[_argcount] = NULL;
+		}
 	}
 
 \n	return (int)_args;
@@ -27,7 +27,7 @@ SPECIAL	[()><|&;*]
 %%
 
 char **getline() {
-  return (char **)yylex();
+	return (char **)yylex();
 }
 
 
