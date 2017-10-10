@@ -11,8 +11,16 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern char **getaline();
+
+int internal_command(char** args);
+int ampersand(char** args);
+int redirect_input(char **args, char **input_filename);
+int redirect_output(char **args, char **output_filename);
+int do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename);
 
 /*
  * Handle exit signals from child processes
@@ -27,7 +35,7 @@ void sig_handler(int signal) {
 /*
  * The main shell function
  */ 
-main() {
+int main(int argc, char** argv) {
 	int i;
 	char **args; 
 	int result;
@@ -144,10 +152,10 @@ int do_command(char **args, int block,
 	switch(child_id) {
 	case EAGAIN:
 		perror("Error EAGAIN: ");
-		return;
+		return -1;	// FIXME: this is probably wrong, but this needs to compile
 	case ENOMEM:
 		perror("Error ENOMEM: ");
-		return;
+		return -1;	// FIXME: this is probably wrong again
 	}
 
 	if(child_id == 0) {
@@ -170,6 +178,8 @@ int do_command(char **args, int block,
 		printf("Waiting for child, pid = %d\n", child_id);
 		result = waitpid(child_id, &status, 0);
 	}
+
+	return result;
 }
 
 /*
