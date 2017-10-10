@@ -1,13 +1,12 @@
 OS := $(shell uname)
 ifeq ($(OS),Darwin)
 CC = clang
-CFLAGS = -g -Wall -Werror
 else
 CC = gcc
-CFLAGS = -g -Wall -Werror
 endif
 
-LIBS =
+CFLAGS = -g
+LIBS = -lfl
 INCLUDE =
 SRC = src/lex.yy.c src/myshell.c
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
