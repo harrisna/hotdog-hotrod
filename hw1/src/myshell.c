@@ -70,36 +70,36 @@ int main(int argc, char** argv) {
 		input = redirect_input(args, &input_filename);
 
 		switch(input) {
-		case -1:
-			printf("Syntax error!\n");
-			continue;
-			break;
-		case 0:
-			break;
-		case 1:
-			printf("Redirecting input from: %s\n", input_filename);
-			break;
+			case -1:
+				printf("Syntax error!\n");
+				continue;
+				break;
+			case 0:
+				break;
+			case 1:
+				printf("Redirecting input from: %s\n", input_filename);
+				break;
 		}
 
 		// Check for redirected output
 		output = redirect_output(args, &output_filename);
 
 		switch(output) {
-		case -1:
-			printf("Syntax error!\n");
-			continue;
-			break;
-		case 0:
-			break;
-		case 1:
-			printf("Redirecting output to: %s\n", output_filename);
-			break;
+			case -1:
+				printf("Syntax error!\n");
+				continue;
+				break;
+			case 0:
+				break;
+			case 1:
+				printf("Redirecting output to: %s\n", output_filename);
+				break;
 		}
 
 		// Do the command
 		do_command(args, block, 
-				 input, input_filename, 
-				 output, output_filename);
+				input, input_filename, 
+				output, output_filename);
 	}
 }
 
@@ -118,7 +118,7 @@ int ampersand(char **args) {
 	} else {
 		return 0;
 	}
-	
+
 	return 0;
 }
 
@@ -138,9 +138,9 @@ int internal_command(char **args) {
  * Do the command
  */
 int do_command(char **args, int block,
-				 int input, char *input_filename,
-				 int output, char *output_filename) {
-	
+		int input, char *input_filename,
+		int output, char *output_filename) {
+
 	int result;
 	pid_t child_id;
 	int status;
@@ -150,12 +150,12 @@ int do_command(char **args, int block,
 
 	// Check for errors in fork()
 	switch(child_id) {
-	case EAGAIN:
-		perror("Error EAGAIN: ");
-		return -1;	// FIXME: this is probably wrong, but this needs to compile
-	case ENOMEM:
-		perror("Error ENOMEM: ");
-		return -1;	// FIXME: this is probably wrong again
+		case EAGAIN:
+			perror("Error EAGAIN: ");
+			return -1;	// FIXME: this is probably wrong, but this needs to compile
+		case ENOMEM:
+			perror("Error ENOMEM: ");
+			return -1;	// FIXME: this is probably wrong again
 	}
 
 	if(child_id == 0) {
@@ -197,14 +197,14 @@ int redirect_input(char **args, char **input_filename) {
 
 			// Read the filename
 			if(args[i+1] != NULL) {
-	*input_filename = args[i+1];
+				*input_filename = args[i+1];
 			} else {
-	return -1;
+				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-	args[j] = args[j+2];
+				args[j] = args[j+2];
 			}
 
 			return 1;
@@ -229,14 +229,14 @@ int redirect_output(char **args, char **output_filename) {
 
 			// Get the filename 
 			if(args[i+1] != NULL) {
-	*output_filename = args[i+1];
+				*output_filename = args[i+1];
 			} else {
-	return -1;
+				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-	args[j] = args[j+2];
+				args[j] = args[j+2];
 			}
 
 			return 1;
