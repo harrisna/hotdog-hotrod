@@ -16,12 +16,22 @@
 
 extern char **getaline();
 
+typedef struct pid_node_s {
+	int pid;
+	struct pid_node_s* next;
+} pid_node_t;
+
+pid_node_t* waitlist;
+
 int internal_command(char** args);
 int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
+int redirect_pipe(char **args1, char ***args2);
 void parse_command(char** args);
-int do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int pipe, int* fd);
+void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int pipe, int* fd);
+void waitlist_push(pid_node_t* n, int pid);
+void waitlist_wait(pid_node_t* n);
 
 /*
  * Handle exit signals from child processes
@@ -42,6 +52,9 @@ int main(int argc, char** argv) {
 
 	// Set up the signal handler
 	sigset(SIGCHLD, sig_handler);
+
+	// Init waitlist
+	waitlist = NULL;
 
 	// Loop forever
 	while(1) {
@@ -66,7 +79,6 @@ int main(int argc, char** argv) {
 // should we use number of args??
 // TODO: add pipe output
 void parse_command(char** args) {
-	int i;
 	int result;
 	int block;
 	int output;
@@ -123,6 +135,8 @@ void parse_command(char** args) {
 			 input, input_filename, 
 			 output, output_filename,
 			 pipe, fd);
+
+	waitlist_wait(waitlist);
 }
 
 /*
@@ -159,7 +173,7 @@ int internal_command(char **args) {
 /* 
  * Do the command
  */
-int do_command(char **args, int block,
+void do_command(char **args, int block,
 		int input, char *input_filename,
 		int output, char *output_filename,
 		int pipe, int* fd) {
@@ -175,10 +189,8 @@ int do_command(char **args, int block,
 	switch(child_id) {
 	case EAGAIN:
 		perror("Error EAGAIN: ");
-		//return -1;	// FIXME: this is probably wrong, but this needs to compile
 	case ENOMEM:
 		perror("Error ENOMEM: ");
-		//return -1;	// FIXME: this is probably wrong again
 	}
 
 	if(child_id == 0) {
@@ -199,11 +211,8 @@ int do_command(char **args, int block,
 
 	// Wait for the child process to complete, if necessary
 	if(block) {
-		printf("Waiting for child, pid = %d\n", child_id);
-		result = waitpid(child_id, &status, 0);
+		waitlist_push(waitlist, child_id);
 	}
-
-	return result;
 }
 
 /*
@@ -277,7 +286,7 @@ int redirect_output(char **args, char **output_filename) {
 
 // FIXME: unfinished func
 // TODO: pointer to second half of args?  
-int redirect_pipe(char **args1, int *args1len, char ***args2) {
+int redirect_pipe(char **args1, char ***args2) {
 	int i;
 	int j;
 
@@ -302,3 +311,23 @@ int redirect_pipe(char **args1, int *args1len, char ***args2) {
 
 	return 0;
 }
+
+void waitlist_push(pid_node_t* n, int pid) {
+	while (n != NULL)
+		n = n->next;
+
+	n = malloc(sizeof(pid_node_t));
+	n->pid = pid;
+	n->next = NULL;
+}
+
+void waitlist_wait(pid_node_t* n) {
+	if(n != NULL)
+		waitlist_wait(n->next);
+
+	int status;
+
+	printf("Waiting for child, pid = %d\n", n->pid);
+	waitpid(n->pid, &status, 0);
+}
+
