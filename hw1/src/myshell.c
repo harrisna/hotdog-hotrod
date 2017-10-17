@@ -139,7 +139,7 @@ int ampersand(char **args) {
 	} else {
 		return 0;
 	}
-	
+
 	return 0;
 }
 
@@ -162,7 +162,6 @@ int do_command(char **args, int block,
 		int input, char *input_filename,
 		int output, char *output_filename,
 		int pipe, int* fd) {
-	
 	int result;
 	pid_t child_id;
 	int status;
@@ -220,14 +219,14 @@ int redirect_input(char **args, char **input_filename) {
 
 			// Read the filename
 			if(args[i+1] != NULL) {
-	*input_filename = args[i+1];
+				*input_filename = args[i+1];
 			} else {
-	return -1;
+				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-	args[j] = args[j+2];
+				args[j] = args[j+2];
 			}
 
 			return 1;
@@ -252,14 +251,14 @@ int redirect_output(char **args, char **output_filename) {
 
 			// Get the filename 
 			if(args[i+1] != NULL) {
-	*output_filename = args[i+1];
+				*output_filename = args[i+1];
 			} else {
-	return -1;
+				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-	args[j] = args[j+2];
+				args[j] = args[j+2];
 			}
 
 			return 1;
