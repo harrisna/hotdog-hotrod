@@ -18,6 +18,7 @@ extern char **getaline();
 
 typedef struct pid_node_s {
 	int pid;
+	int fd[2];
 	struct pid_node_s* next;
 } pid_node_t;
 
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
 	char **args; 
 
 	// Set up the signal handler
-	sigset(SIGCHLD, sig_handler);
+	//sigset(SIGCHLD, sig_handler);
 
 	// Init waitlist
 	waitlist = NULL;
@@ -72,13 +73,14 @@ int main(int argc, char** argv) {
 			continue;
 
 		parse_command(args, 0, 0);
+
+		waitlist_wait(waitlist);
+		waitlist = NULL;	// waitlist is now empty; make sure it's NULL
 	}
 }
 
 // FIXME: dumb name
-// should we use number of args??
-// TODO: add pipe output
-void parse_command(char** args, int bpipe, int wfd) {
+void parse_command(char** args, int bpipe, int rfd) {
 	int result;
 	int block;
 	int output;
@@ -88,6 +90,7 @@ void parse_command(char** args, int bpipe, int wfd) {
 	char *output_filename;
 	char *input_filename;
 	char **pipeargs;
+	int pipeErr;
 
 	// Check for an ampersand
 	block = (ampersand(args) == 0);
@@ -122,30 +125,28 @@ void parse_command(char** args, int bpipe, int wfd) {
 		break;
 	}
 
-	bpipe = redirect_pipe(args, &pipeargs) << 1;
+	bpipe += redirect_pipe(args, &pipeargs);
 
-	if(bpipe) {
+	if(bpipe & 0x01) {
+		// if we found another pipe
 		printf("PIPE!\n");	// TODO: replace with something less stupid
-		// TODO: use pipe() and then pass the related file descriptors to do_command
-		pipe(fd);
-		parse_command(pipeargs, bpipe, fd[1]);	// recursive call to deal with piped commands TODO: add piped file descriptor
+		int pipeErr = pipe(fd);
+
+		if (pipeErr) {
+			perror("Pipe error: ");
+		}
+
+		parse_command(pipeargs, 0x02, fd[0]);	// recursive call to deal with piped commands
+
+		fd[0] = rfd;
 	}
 
-	fd[1] = wfd;
 
 	// Do the command
 	do_command(args, block, 
 			 input, input_filename, 
 			 output, output_filename,
 			 bpipe, fd);
-
-	waitlist_wait(waitlist);
-	waitlist = NULL;	// waitlist is now empty; make sure it's NULL
-
-	printf("bpipe %d", bpipe);
-
-	//close(fd[0]);
-	//close(fd[1]);
 }
 
 /*
@@ -211,6 +212,16 @@ void do_command(char **args, int block,
 		// TODO: no append
 		if(output)
 			freopen(output_filename, "w+", stdout);
+
+		if(bpipe & 0x01) {	// write to pipe
+			dup2(fd[1], STDOUT_FILENO);
+			close(fd[1]);
+		}
+
+		if(bpipe & 0x02) {	// read from pipe
+			dup2(fd[0], STDIN_FILENO);
+			close(fd[0]);
+		}
 
 		// Execute the command
 		result = execvp(args[0], args);
@@ -293,8 +304,6 @@ int redirect_output(char **args, char **output_filename) {
 	return 0;
 }
 
-// FIXME: unfinished func
-// TODO: pointer to second half of args?  
 int redirect_pipe(char **args1, char ***args2) {
 	int i;
 	int j;
@@ -346,6 +355,7 @@ void waitlist_wait(pid_node_t* n) {
 
 	printf("Waiting for child, pid = %d\n", n->pid);
 	waitpid(n->pid, &status, 0);
+
 
 	free(n);
 }
