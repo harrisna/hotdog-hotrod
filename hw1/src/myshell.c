@@ -20,7 +20,8 @@ int internal_command(char** args);
 int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
-int do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename);
+void parse_command(char** args);
+int do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int pipe, int* fd);
 
 /*
  * Handle exit signals from child processes
@@ -38,12 +39,6 @@ void sig_handler(int signal) {
 int main(int argc, char** argv) {
 	int i;
 	char **args; 
-	int result;
-	int block;
-	int output;
-	int input;
-	char *output_filename;
-	char *input_filename;
 
 	// Set up the signal handler
 	sigset(SIGCHLD, sig_handler);
@@ -63,44 +58,70 @@ int main(int argc, char** argv) {
 		if(internal_command(args))
 			continue;
 
-		// Check for an ampersand
-		block = (ampersand(args) == 0);
-
-		// Check for redirected input
-		input = redirect_input(args, &input_filename);
-
-		switch(input) {
-		case -1:
-			printf("Syntax error!\n");
-			continue;
-			break;
-		case 0:
-			break;
-		case 1:
-			printf("Redirecting input from: %s\n", input_filename);
-			break;
-		}
-
-		// Check for redirected output
-		output = redirect_output(args, &output_filename);
-
-		switch(output) {
-		case -1:
-			printf("Syntax error!\n");
-			continue;
-			break;
-		case 0:
-			break;
-		case 1:
-			printf("Redirecting output to: %s\n", output_filename);
-			break;
-		}
-
-		// Do the command
-		do_command(args, block, 
-				 input, input_filename, 
-				 output, output_filename);
+		parse_command(args);
 	}
+}
+
+// FIXME: dumb name
+// should we use number of args??
+// TODO: add pipe output
+void parse_command(char** args) {
+	int result;
+	int block;
+	int output;
+	int input;
+	int pipe;
+	int fd[2];
+	char *output_filename;
+	char *input_filename;
+	char **pipeargs;
+
+	// Check for an ampersand
+	block = (ampersand(args) == 0);
+
+	// Check for redirected input
+	input = redirect_input(args, &input_filename);
+
+	switch(input) {
+	case -1:
+		printf("Syntax error!\n");
+		continue;
+		break;
+	case 0:
+		break;
+	case 1:
+		printf("Redirecting input from: %s\n", input_filename);
+		break;
+	}
+
+	// Check for redirected output
+	output = redirect_output(args, &output_filename);
+
+	switch(output) {
+	case -1:
+		printf("Syntax error!\n");
+		continue;
+		break;
+	case 0:
+		break;
+	case 1:
+		printf("Redirecting output to: %s\n", output_filename);
+		break;
+	}
+
+	pipe = redirect_pipe(args, &pipeargs);
+
+	if(pipe) {
+		printf("PIPE!\n");	// TODO: replace with something less stupid
+		parse_command(args);	// recursive call to deal with piped commands TODO: add piped file descriptor
+	}
+
+	// Do the command
+	do_command(args, block, 
+			 input, input_filename, 
+			 output, output_filename,
+			 pipe, fd);
+	
 }
 
 /*
@@ -138,8 +159,9 @@ int internal_command(char **args) {
  * Do the command
  */
 int do_command(char **args, int block,
-				 int input, char *input_filename,
-				 int output, char *output_filename) {
+		int input, char *input_filename,
+		int output, char *output_filename,
+		int pipe, int* fd) {
 	
 	int result;
 	pid_t child_id;
@@ -152,10 +174,10 @@ int do_command(char **args, int block,
 	switch(child_id) {
 	case EAGAIN:
 		perror("Error EAGAIN: ");
-		return -1;	// FIXME: this is probably wrong, but this needs to compile
+		//return -1;	// FIXME: this is probably wrong, but this needs to compile
 	case ENOMEM:
 		perror("Error ENOMEM: ");
-		return -1;	// FIXME: this is probably wrong again
+		//return -1;	// FIXME: this is probably wrong again
 	}
 
 	if(child_id == 0) {
@@ -164,6 +186,7 @@ int do_command(char **args, int block,
 		if(input)
 			freopen(input_filename, "r", stdin);
 
+		// TODO: no append
 		if(output)
 			freopen(output_filename, "w+", stdout);
 
@@ -246,4 +269,35 @@ int redirect_output(char **args, char **output_filename) {
 	return 0;
 }
 
+// FIXME: unfinished func
+// TODO: pointer to second half of args?  
+int redirect_pipe(char **args1, char ***args2) {
+	int i;
+	int j;
 
+	for(i = 0; args1[i] != NULL; i++) {
+
+		// Look for the >
+		if(args1[i][0] == '|') {
+			free(args1[i]);
+
+			// Get the filename 
+			if(args1[i+1] != NULL) {
+	*args2 = &args1[i+1];
+			} else {
+	return -1;
+			}
+
+			/*
+			// Adjust the rest of the arguments in the array
+			for(j = i; args[j-1] != NULL; j++) {
+	args[j] = args[j+2];
+			}
+			*/
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
