@@ -136,11 +136,16 @@ void parse_command(char** args, int bpipe, int rfd) {
 			perror("Pipe error: ");
 		}
 
+		printf("%d, %d\n", fd[0], fd[1]);
+
 		parse_command(pipeargs, 0x02, fd[0]);	// recursive call to deal with piped commands
 
 		//fd[0] = rfd;
+		printf("%d\n", fd[0]);
+		close(fd[0]);
 	}
 
+	fd[0] = rfd;
 
 	// Do the command
 	do_command(args, block, 
@@ -148,10 +153,11 @@ void parse_command(char** args, int bpipe, int rfd) {
 			 output, output_filename,
 			 bpipe, fd);
 
-	if(bpipe & 0x01)
-		close(fd[1]);
-	if(bpipe & 0x02)
+	if(bpipe & 0x01) {
+		printf("closing %d and %d on shell!!\n", fd[0], fd[1]);
 		close(fd[0]);
+		close(fd[1]);
+	}
 }
 
 /*
@@ -210,6 +216,7 @@ void do_command(char **args, int block,
 
 	if(child_id == 0) {
 
+		printf("closing %d and %d on child!!\n", fd[0], fd[1]);
 		// Set up redirection in the child process
 		if(input)
 			freopen(input_filename, "r", stdin);
@@ -220,11 +227,14 @@ void do_command(char **args, int block,
 
 		if(bpipe & 0x01) {	// write to pipe
 			dup2(fd[1], STDOUT_FILENO);
-			close(fd[1]);
 		}
 
 		if(bpipe & 0x02) {	// read from pipe
 			dup2(fd[0], STDIN_FILENO);
+		}
+
+		if(bpipe) {
+			close(fd[1]);
 			close(fd[0]);
 		}
 
@@ -286,6 +296,7 @@ int redirect_output(char **args, char **output_filename) {
 
 		// Look for the >
 		if(args[i][0] == '>') {
+			printf("test!!\n");
 			free(args[i]);
 
 			args[i] = NULL;
