@@ -213,10 +213,14 @@ void do_command(char **args, int block,
 		// Set up redirection in the child process
 		if(input)
 			freopen(input_filename, "r", stdin);
-
-		// TODO: no append
-		if(output)
+		
+		//REDIRECT
+		if(output == 1)
 			freopen(output_filename, "w+", stdout);
+		//APPEND
+		if(output == 2)
+			freopen(output_filename, "a+", stdout);
+		
 
 		if(bpipe & 0x01) {	// write to pipe
 			dup2(fd[1], STDOUT_FILENO);
@@ -284,26 +288,34 @@ int redirect_output(char **args, char **output_filename) {
 
 	for(i = 0; args[i] != NULL; i++) {
 
+		// REDIRECT
 		// Look for the >
 		if(args[i][0] == '>') {
+			int k = 1;
+			if(args[i+1][0] == '>') {
+				k = 2;
+				free(args[i+1]);
+				args[i+1] = NULL;
+			}
 			free(args[i]);
 
 			args[i] = NULL;
 
 			// Get the filename 
-			if(args[i+1] != NULL) {
-				*output_filename = args[i+1];
+			if(args[i+k] != NULL) {
+				*output_filename = args[i+k];
 			} else {
 				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-				args[j] = args[j+2];
+				args[j] = args[j+1+k];
 			}
-
-			return 1;
+		
+			return k;
 		}
+		
 	}
 
 	return 0;
