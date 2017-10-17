@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
 // should we use number of args??
 // TODO: add pipe output
 void parse_command(char** args) {
+	int i;
 	int result;
 	int block;
 	int output;
@@ -85,7 +86,7 @@ void parse_command(char** args) {
 	switch(input) {
 	case -1:
 		printf("Syntax error!\n");
-		continue;
+		return;
 		break;
 	case 0:
 		break;
@@ -100,7 +101,7 @@ void parse_command(char** args) {
 	switch(output) {
 	case -1:
 		printf("Syntax error!\n");
-		continue;
+		return;
 		break;
 	case 0:
 		break;
@@ -113,7 +114,8 @@ void parse_command(char** args) {
 
 	if(pipe) {
 		printf("PIPE!\n");	// TODO: replace with something less stupid
-		parse_command(args);	// recursive call to deal with piped commands TODO: add piped file descriptor
+		// TODO: use pipe() and then pass the related file descriptors to do_command
+		parse_command(pipeargs);	// recursive call to deal with piped commands TODO: add piped file descriptor
 	}
 
 	// Do the command
@@ -121,7 +123,6 @@ void parse_command(char** args) {
 			 input, input_filename, 
 			 output, output_filename,
 			 pipe, fd);
-	
 }
 
 /*
@@ -162,6 +163,7 @@ int do_command(char **args, int block,
 		int input, char *input_filename,
 		int output, char *output_filename,
 		int pipe, int* fd) {
+
 	int result;
 	pid_t child_id;
 	int status;
@@ -217,6 +219,8 @@ int redirect_input(char **args, char **input_filename) {
 		if(args[i][0] == '<') {
 			free(args[i]);
 
+			args[i] = NULL;
+
 			// Read the filename
 			if(args[i+1] != NULL) {
 				*input_filename = args[i+1];
@@ -225,6 +229,7 @@ int redirect_input(char **args, char **input_filename) {
 			}
 
 			// Adjust the rest of the arguments in the array
+			// FIXME: what does this even do?
 			for(j = i; args[j-1] != NULL; j++) {
 				args[j] = args[j+2];
 			}
@@ -249,6 +254,8 @@ int redirect_output(char **args, char **output_filename) {
 		if(args[i][0] == '>') {
 			free(args[i]);
 
+			args[i] = NULL;
+
 			// Get the filename 
 			if(args[i+1] != NULL) {
 				*output_filename = args[i+1];
@@ -270,7 +277,7 @@ int redirect_output(char **args, char **output_filename) {
 
 // FIXME: unfinished func
 // TODO: pointer to second half of args?  
-int redirect_pipe(char **args1, char ***args2) {
+int redirect_pipe(char **args1, int *args1len, char ***args2) {
 	int i;
 	int j;
 
@@ -280,19 +287,14 @@ int redirect_pipe(char **args1, char ***args2) {
 		if(args1[i][0] == '|') {
 			free(args1[i]);
 
+			args1[i] = NULL;
+
 			// Get the filename 
 			if(args1[i+1] != NULL) {
-	*args2 = &args1[i+1];
+				*args2 = &args1[i+1];
 			} else {
-	return -1;
+				return -1;
 			}
-
-			/*
-			// Adjust the rest of the arguments in the array
-			for(j = i; args[j-1] != NULL; j++) {
-	args[j] = args[j+2];
-			}
-			*/
 
 			return 1;
 		}
