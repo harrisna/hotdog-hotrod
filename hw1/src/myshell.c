@@ -28,8 +28,8 @@ int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
 int redirect_pipe(char **args1, char ***args2);
-void parse_command(char** args);
-void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int pipe, int* fd);
+void parse_command(char** args, int bpipe, int wfd);
+void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int bpipe, int* fd);
 void waitlist_push(pid_node_t* n, int pid);
 void waitlist_wait(pid_node_t* n);
 
@@ -71,19 +71,19 @@ int main(int argc, char** argv) {
 		if(internal_command(args))
 			continue;
 
-		parse_command(args);
+		parse_command(args, 0, 0);
 	}
 }
 
 // FIXME: dumb name
 // should we use number of args??
 // TODO: add pipe output
-void parse_command(char** args) {
+void parse_command(char** args, int bpipe, int wfd) {
 	int result;
 	int block;
 	int output;
 	int input;
-	int pipe;
+	//int pipe;
 	int fd[2];
 	char *output_filename;
 	char *input_filename;
@@ -122,21 +122,30 @@ void parse_command(char** args) {
 		break;
 	}
 
-	pipe = redirect_pipe(args, &pipeargs);
+	bpipe = redirect_pipe(args, &pipeargs) << 1;
 
-	if(pipe) {
+	if(bpipe) {
 		printf("PIPE!\n");	// TODO: replace with something less stupid
 		// TODO: use pipe() and then pass the related file descriptors to do_command
-		parse_command(pipeargs);	// recursive call to deal with piped commands TODO: add piped file descriptor
+		pipe(fd);
+		parse_command(pipeargs, bpipe, fd[1]);	// recursive call to deal with piped commands TODO: add piped file descriptor
 	}
+
+	fd[1] = wfd;
 
 	// Do the command
 	do_command(args, block, 
 			 input, input_filename, 
 			 output, output_filename,
-			 pipe, fd);
+			 bpipe, fd);
 
 	waitlist_wait(waitlist);
+	waitlist = NULL;	// waitlist is now empty; make sure it's NULL
+
+	printf("bpipe %d", bpipe);
+
+	//close(fd[0]);
+	//close(fd[1]);
 }
 
 /*
@@ -176,7 +185,7 @@ int internal_command(char **args) {
 void do_command(char **args, int block,
 		int input, char *input_filename,
 		int output, char *output_filename,
-		int pipe, int* fd) {
+		int bpipe, int* fd) {
 
 	int result;
 	pid_t child_id;
@@ -208,7 +217,7 @@ void do_command(char **args, int block,
 
 		exit(-1);
 	}
-
+	
 	// Wait for the child process to complete, if necessary
 	if(block) {
 		waitlist_push(waitlist, child_id);
@@ -313,21 +322,31 @@ int redirect_pipe(char **args1, char ***args2) {
 }
 
 void waitlist_push(pid_node_t* n, int pid) {
-	while (n != NULL)
+	// FIXME: this is some pretty awful code
+	pid_node_t* next = malloc(sizeof(pid_node_t));
+	next->pid = pid;
+	next->next = NULL;
+
+	if (!n) {
+		waitlist = next;
+		return;
+	}
+
+	while (n && n->next)
 		n = n->next;
 
-	n = malloc(sizeof(pid_node_t));
-	n->pid = pid;
-	n->next = NULL;
+	n->next = next;
 }
 
 void waitlist_wait(pid_node_t* n) {
-	if(n != NULL)
+	if(n->next)
 		waitlist_wait(n->next);
 
 	int status;
 
 	printf("Waiting for child, pid = %d\n", n->pid);
 	waitpid(n->pid, &status, 0);
+
+	free(n);
 }
 
