@@ -29,7 +29,7 @@ int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
 int redirect_pipe(char **args1, char ***args2);
-void parse_command(char** args, int bpipe, int wfd);
+void parse_command(char** args, int bpipe, int rfd, int wfd);
 void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int bpipe, int* fd);
 void waitlist_push(pid_node_t* n, int pid);
 void waitlist_wait(pid_node_t* n);
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 	char **args; 
 
 	// Set up the signal handler
-	//sigset(SIGCHLD, sig_handler);
+	sigset(SIGCHLD, sig_handler);
 
 	// Init waitlist
 	waitlist = NULL;
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 		if(internal_command(args))
 			continue;
 
-		parse_command(args, 0, 0);
+		parse_command(args, 0, -1, -1); // use file -1 to indicate no file
 
 		waitlist_wait(waitlist);
 		waitlist = NULL;	// waitlist is now empty; make sure it's NULL
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 }
 
 // FIXME: dumb name
-void parse_command(char** args, int bpipe, int rfd) {
+void parse_command(char** args, int bpipe, int rfd, int wfd) {
 	int result;
 	int block;
 	int output;
@@ -136,13 +136,11 @@ void parse_command(char** args, int bpipe, int rfd) {
 			perror("Pipe error: ");
 		}
 
-		printf("%d, %d\n", fd[0], fd[1]);
+		parse_command(pipeargs, 0x02, fd[0], fd[1]);	// recursive call to deal with piped commands
 
-		parse_command(pipeargs, 0x02, fd[0]);	// recursive call to deal with piped commands
-
-		//fd[0] = rfd;
-		printf("%d\n", fd[0]);
 		close(fd[0]);
+	} else {
+		fd[1] = wfd;
 	}
 
 	fd[0] = rfd;
@@ -154,7 +152,6 @@ void parse_command(char** args, int bpipe, int rfd) {
 			 bpipe, fd);
 
 	if(bpipe & 0x01) {
-		printf("closing %d and %d on shell!!\n", fd[0], fd[1]);
 		close(fd[0]);
 		close(fd[1]);
 	}
@@ -216,7 +213,6 @@ void do_command(char **args, int block,
 
 	if(child_id == 0) {
 
-		printf("closing %d and %d on child!!\n", fd[0], fd[1]);
 		// Set up redirection in the child process
 		if(input)
 			freopen(input_filename, "r", stdin);
