@@ -138,7 +138,7 @@ void parse_command(char** args, int bpipe, int rfd) {
 
 		parse_command(pipeargs, 0x02, fd[0]);	// recursive call to deal with piped commands
 
-		fd[0] = rfd;
+		//fd[0] = rfd;
 	}
 
 
@@ -147,6 +147,11 @@ void parse_command(char** args, int bpipe, int rfd) {
 			 input, input_filename, 
 			 output, output_filename,
 			 bpipe, fd);
+
+	if(bpipe & 0x01)
+		close(fd[1]);
+	if(bpipe & 0x02)
+		close(fd[0]);
 }
 
 /*
