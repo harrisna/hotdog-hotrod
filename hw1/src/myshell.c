@@ -29,7 +29,7 @@ int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
 int redirect_pipe(char **args1, char ***args2);
-void parse_command(char** args, int bpipe, int rfd, int wfd);
+void parse_command(char** args, int bpipe, int rfd, int wfd, int block, int input, char* input_filename, int output, char* output_filename);
 void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int bpipe, int* fd);
 void waitlist_push(pid_node_t* n, int pid);
 void waitlist_wait(pid_node_t* n);
@@ -58,8 +58,8 @@ int main(int argc, char** argv) {
 
 	// Set up the signal handler
 	sigset(SIGCHLD, sig_handler);
-	sigset(SIGTTOU, sig_ttou);
-	sigset(SIGTTIN, sig_ttou);
+	//sigset(SIGTTOU, sig_ttou);
+	//sigset(SIGTTIN, sig_ttou);
 
 	// Init waitlist
 	waitlist = NULL;
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 		if(internal_command(args))
 			continue;
 
-		parse_command(args, 0, -1, -1); // use file -1 to indicate no file
+		parse_command(args, 0, -1, -1, 1, 0, "", 0, ""); // use file -1 to indicate no file
 
 		waitlist_wait(waitlist);
 		waitlist = NULL;	// waitlist is now empty; make sure it's NULL
@@ -89,20 +89,14 @@ int main(int argc, char** argv) {
 }
 
 // FIXME: dumb name
-void parse_command(char** args, int bpipe, int rfd, int wfd) {
+void parse_command(char** args, int bpipe, int rfd, int wfd, int block, int input, char* input_filename, int output, char* output_filename) {
 	int result;
-	int block;
-	int output;
-	int input;
-	//int pipe;
 	int fd[2];
-	char *output_filename;
-	char *input_filename;
 	char **pipeargs;
 	int pipeErr;
 
 	// Check for an ampersand
-	block = (ampersand(args) == 0);
+	block = (ampersand(args) == 0) && block;
 
 	// Check for redirected input
 	input = redirect_input(args, &input_filename);
@@ -132,20 +126,22 @@ void parse_command(char** args, int bpipe, int rfd, int wfd) {
 	case 1:
 		printf("Redirecting output to: %s\n", output_filename);
 		break;
+	case 2:
+		printf("Appending output to: %s\n", output_filename);
+		break;
 	}
 
 	bpipe += redirect_pipe(args, &pipeargs);
 
 	if(bpipe & 0x01) {
 		// if we found another pipe
-		printf("PIPE!\n");	// TODO: replace with something less stupid
 		int pipeErr = pipe(fd);
 
 		if (pipeErr) {
 			perror("Pipe error: ");
 		}
 
-		parse_command(pipeargs, 0x02, fd[0], fd[1]);	// recursive call to deal with piped commands
+		parse_command(pipeargs, 0x02, fd[0], fd[1], block, input, input_filename, output, output_filename);	// recursive call to deal with piped commands
 
 		close(fd[0]);
 	} else {
@@ -236,17 +232,16 @@ void do_command(char **args, int block,
 		}
 
 		// Set up redirection in the child process
-		if(input)
+		if(input && (bpipe & 0x02))
 			freopen(input_filename, "r", stdin);
 		
 		//REDIRECT
-		if(output == 1)
+		if(output == 1 && (bpipe & 0x01))
 			freopen(output_filename, "w+", stdout);
 		//APPEND
-		if(output == 2)
+		if(output == 2 && (bpipe & 0x01))
 			freopen(output_filename, "a+", stdout);
 		
-		printf("%d\n", tcgetpgrp(0));
 		// Execute the command
 		result = execvp(args[0], args);
 
