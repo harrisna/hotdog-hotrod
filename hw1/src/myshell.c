@@ -44,6 +44,11 @@ void sig_handler(int signal) {
 	printf("Wait returned %d\n", result);
 }
 
+void sig_ttou(int signal) {
+	printf("TEST\n");
+	exit(-1);
+}
+
 /*
  * The main shell function
  */ 
@@ -53,6 +58,8 @@ int main(int argc, char** argv) {
 
 	// Set up the signal handler
 	sigset(SIGCHLD, sig_handler);
+	sigset(SIGTTOU, sig_ttou);
+	sigset(SIGTTIN, sig_ttou);
 
 	// Init waitlist
 	waitlist = NULL;
@@ -64,6 +71,8 @@ int main(int argc, char** argv) {
 		printf("->");
 		args = getaline();
 
+		if(args == NULL)
+			continue;
 		// No input, continue
 		if(args[0] == NULL)
 			continue;
@@ -213,18 +222,6 @@ void do_command(char **args, int block,
 
 	if(child_id == 0) {
 
-		// Set up redirection in the child process
-		if(input)
-			freopen(input_filename, "r", stdin);
-		
-		//REDIRECT
-		if(output == 1)
-			freopen(output_filename, "w+", stdout);
-		//APPEND
-		if(output == 2)
-			freopen(output_filename, "a+", stdout);
-		
-
 		if(bpipe & 0x01) {	// write to pipe
 			dup2(fd[1], STDOUT_FILENO);
 		}
@@ -238,6 +235,18 @@ void do_command(char **args, int block,
 			close(fd[0]);
 		}
 
+		// Set up redirection in the child process
+		if(input)
+			freopen(input_filename, "r", stdin);
+		
+		//REDIRECT
+		if(output == 1)
+			freopen(output_filename, "w+", stdout);
+		//APPEND
+		if(output == 2)
+			freopen(output_filename, "a+", stdout);
+		
+		printf("%d\n", tcgetpgrp(0));
 		// Execute the command
 		result = execvp(args[0], args);
 
@@ -247,7 +256,7 @@ void do_command(char **args, int block,
 	// Wait for the child process to complete, if necessary
 	if(block) {
 		waitlist_push(waitlist, child_id);
-	}
+	} 
 }
 
 /*
@@ -371,6 +380,9 @@ void waitlist_push(pid_node_t* n, int pid) {
 }
 
 void waitlist_wait(pid_node_t* n) {
+	if(!n)
+		return;
+
 	if(n->next)
 		waitlist_wait(n->next);
 
