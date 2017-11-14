@@ -11,7 +11,7 @@ CC = g++
 LIBS += 
 endif
 
-SRC = src/main.cpp
+SRC = src/main.cpp src/processList.cpp src/scheduler_rts.cpp
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 TARGET = scheduler
 
