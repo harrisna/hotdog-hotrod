@@ -18,6 +18,7 @@ extern char **getaline();
 
 typedef struct pid_node_s {
 	int pid;
+	int fd[2];
 	struct pid_node_s* next;
 } pid_node_t;
 
@@ -28,8 +29,8 @@ int ampersand(char** args);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
 int redirect_pipe(char **args1, char ***args2);
-void parse_command(char** args);
-void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int pipe, int* fd);
+void parse_command(char** args, int bpipe, int rfd, int wfd, int block, int input, char* input_filename, int output, char* output_filename);
+void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, int bpipe, int* fd);
 void waitlist_push(pid_node_t* n, int pid);
 void waitlist_wait(pid_node_t* n);
 
@@ -43,6 +44,11 @@ void sig_handler(int signal) {
 	printf("Wait returned %d\n", result);
 }
 
+void sig_ttou(int signal) {
+	printf("TEST\n");
+	exit(-1);
+}
+
 /*
  * The main shell function
  */ 
@@ -52,6 +58,8 @@ int main(int argc, char** argv) {
 
 	// Set up the signal handler
 	sigset(SIGCHLD, sig_handler);
+	//sigset(SIGTTOU, sig_ttou);
+	//sigset(SIGTTIN, sig_ttou);
 
 	// Init waitlist
 	waitlist = NULL;
@@ -63,6 +71,8 @@ int main(int argc, char** argv) {
 		printf("->");
 		args = getaline();
 
+		if(args == NULL)
+			continue;
 		// No input, continue
 		if(args[0] == NULL)
 			continue;
@@ -71,26 +81,22 @@ int main(int argc, char** argv) {
 		if(internal_command(args))
 			continue;
 
-		parse_command(args);
+		parse_command(args, 0, -1, -1, 1, 0, "", 0, ""); // use file -1 to indicate no file
+
+		waitlist_wait(waitlist);
+		waitlist = NULL;	// waitlist is now empty; make sure it's NULL
 	}
 }
 
 // FIXME: dumb name
-// should we use number of args??
-// TODO: add pipe output
-void parse_command(char** args) {
+void parse_command(char** args, int bpipe, int rfd, int wfd, int block, int input, char* input_filename, int output, char* output_filename) {
 	int result;
-	int block;
-	int output;
-	int input;
-	int pipe;
 	int fd[2];
-	char *output_filename;
-	char *input_filename;
 	char **pipeargs;
+	int pipeErr;
 
 	// Check for an ampersand
-	block = (ampersand(args) == 0);
+	block = (ampersand(args) == 0) && block;
 
 	// Check for redirected input
 	input = redirect_input(args, &input_filename);
@@ -120,23 +126,40 @@ void parse_command(char** args) {
 	case 1:
 		printf("Redirecting output to: %s\n", output_filename);
 		break;
+	case 2:
+		printf("Appending output to: %s\n", output_filename);
+		break;
 	}
 
-	pipe = redirect_pipe(args, &pipeargs);
+	bpipe += redirect_pipe(args, &pipeargs);
 
-	if(pipe) {
-		printf("PIPE!\n");	// TODO: replace with something less stupid
-		// TODO: use pipe() and then pass the related file descriptors to do_command
-		parse_command(pipeargs);	// recursive call to deal with piped commands TODO: add piped file descriptor
+	if(bpipe & 0x01) {
+		// if we found another pipe
+		int pipeErr = pipe(fd);
+
+		if (pipeErr) {
+			perror("Pipe error: ");
+		}
+
+		parse_command(pipeargs, 0x02, fd[0], fd[1], block, input, input_filename, output, output_filename);	// recursive call to deal with piped commands
+
+		close(fd[0]);
+	} else {
+		fd[1] = wfd;
 	}
+
+	fd[0] = rfd;
 
 	// Do the command
 	do_command(args, block, 
 			 input, input_filename, 
 			 output, output_filename,
-			 pipe, fd);
+			 bpipe, fd);
 
-	waitlist_wait(waitlist);
+	if(bpipe & 0x01) {
+		close(fd[0]);
+		close(fd[1]);
+	}
 }
 
 /*
@@ -176,7 +199,7 @@ int internal_command(char **args) {
 void do_command(char **args, int block,
 		int input, char *input_filename,
 		int output, char *output_filename,
-		int pipe, int* fd) {
+		int bpipe, int* fd) {
 
 	int result;
 	pid_t child_id;
@@ -195,24 +218,40 @@ void do_command(char **args, int block,
 
 	if(child_id == 0) {
 
+		if(bpipe & 0x01) {	// write to pipe
+			dup2(fd[1], STDOUT_FILENO);
+		}
+
+		if(bpipe & 0x02) {	// read from pipe
+			dup2(fd[0], STDIN_FILENO);
+		}
+
+		if(bpipe) {
+			close(fd[1]);
+			close(fd[0]);
+		}
+
 		// Set up redirection in the child process
-		if(input)
+		if(input && (bpipe & 0x02))
 			freopen(input_filename, "r", stdin);
-
-		// TODO: no append
-		if(output)
+		
+		//REDIRECT
+		if(output == 1 && (bpipe & 0x01))
 			freopen(output_filename, "w+", stdout);
-
+		//APPEND
+		if(output == 2 && (bpipe & 0x01))
+			freopen(output_filename, "a+", stdout);
+		
 		// Execute the command
 		result = execvp(args[0], args);
 
 		exit(-1);
 	}
-
+	
 	// Wait for the child process to complete, if necessary
 	if(block) {
 		waitlist_push(waitlist, child_id);
-	}
+	} 
 }
 
 /*
@@ -259,33 +298,39 @@ int redirect_output(char **args, char **output_filename) {
 
 	for(i = 0; args[i] != NULL; i++) {
 
+		// REDIRECT
 		// Look for the >
 		if(args[i][0] == '>') {
+			int k = 1;
+			if(args[i+1][0] == '>') {
+				k = 2;
+				free(args[i+1]);
+				args[i+1] = NULL;
+			}
 			free(args[i]);
 
 			args[i] = NULL;
 
 			// Get the filename 
-			if(args[i+1] != NULL) {
-				*output_filename = args[i+1];
+			if(args[i+k] != NULL) {
+				*output_filename = args[i+k];
 			} else {
 				return -1;
 			}
 
 			// Adjust the rest of the arguments in the array
 			for(j = i; args[j-1] != NULL; j++) {
-				args[j] = args[j+2];
+				args[j] = args[j+1+k];
 			}
-
-			return 1;
+		
+			return k;
 		}
+		
 	}
 
 	return 0;
 }
 
-// FIXME: unfinished func
-// TODO: pointer to second half of args?  
 int redirect_pipe(char **args1, char ***args2) {
 	int i;
 	int j;
@@ -313,21 +358,35 @@ int redirect_pipe(char **args1, char ***args2) {
 }
 
 void waitlist_push(pid_node_t* n, int pid) {
-	while (n != NULL)
+	// FIXME: this is some pretty awful code
+	pid_node_t* next = malloc(sizeof(pid_node_t));
+	next->pid = pid;
+	next->next = NULL;
+
+	if (!n) {
+		waitlist = next;
+		return;
+	}
+
+	while (n && n->next)
 		n = n->next;
 
-	n = malloc(sizeof(pid_node_t));
-	n->pid = pid;
-	n->next = NULL;
+	n->next = next;
 }
 
 void waitlist_wait(pid_node_t* n) {
-	if(n != NULL)
+	if(!n)
+		return;
+
+	if(n->next)
 		waitlist_wait(n->next);
 
 	int status;
 
 	printf("Waiting for child, pid = %d\n", n->pid);
 	waitpid(n->pid, &status, 0);
+
+
+	free(n);
 }
 
