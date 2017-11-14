@@ -39,6 +39,7 @@ class process {
 
 	// process info
 	int pid;
+	int timeQuantum;
 	/* etc. */
 
 	process* next;	// is this needed?
@@ -48,9 +49,15 @@ class process {
 
 paper:
 
-1. intro
+1. intro - describe what is in section 2, 3, etc.
 2. discovery
 3. description of work
 4. perf. evaluation
 5. conclusion
 ref.
+
+metrics:
+time quantum
+context switches
+i/o
+
