@@ -17,15 +17,16 @@ struct processNode {
 int main(int argc, char** argv) {
 	FILE* f = fopen(argv[1], "r");
 
-	char* s;
 	processNode* pn = NULL;
+	processNode* node = NULL;
 
 	fscanf(f, "%*[^\n]\n", NULL);
 
 	while(1) {
-		if (pn == NULL)
+		if (pn == NULL) {
 			pn = new processNode();
-		else {
+			node = pn;
+		} else {
 			pn->next = new processNode();
 			pn = pn->next;
 		}
@@ -35,10 +36,9 @@ int main(int argc, char** argv) {
 
 		pn->next = NULL;
 
-		printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", pn->pid, pn->burst, pn->arrival, pn->priority, pn->deadline, pn->io);
+		//printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", pn->pid, pn->burst, pn->arrival, pn->priority, pn->deadline, pn->io);
 	}
 
-	processNode* node;
 	while(node != NULL) {
 		printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", node->pid, node->burst, node->arrival, node->priority, node->deadline, node->io);
 		node = node->next;
