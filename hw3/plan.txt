@@ -1,0 +1,56 @@
+files:
+when reading a file, first we should read it into a linked list, allowing us to process each node as they come in and count them
+that linked list is passed to the scheduler, which will make queues in the correct form
+
+i think string has a delimiter and such, so that makes life easy for us, if we so choose.
+otherwise, we can use C style strings to our advantage and simply replace \t with \0 and process each string
+
+as it stands, the structure of the program looks like:
+
+main -> read processes -> schedule -> while(1){scheduler->tick();} -> print stats
+
+
+
+scheduling:
+each scheduling algorithm should have its own class
+the interface may look like:
+
+class scheduler {
+	double avgWaitTime;
+	double avgTurnaroundTime;
+	int numProcesses;
+
+	void tick();
+}
+
+we still need a way to enter each process into the scheduler and such, of course
+
+
+
+process:
+the process will look something like this:
+
+class process {
+	// statistics
+	int startTime;
+	int endTime;
+	int cpuTime;
+	int waitTime;
+
+	// process info
+	int pid;
+	/* etc. */
+
+	process* next;	// is this needed?
+}
+
+
+
+paper:
+
+1. intro
+2. discovery
+3. description of work
+4. perf. evaluation
+5. conclusion
+ref.
