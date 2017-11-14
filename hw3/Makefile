@@ -11,9 +11,9 @@ CC = g++
 LIBS += 
 endif
 
-SRC = src/x.cpp
+SRC = src/main.cpp
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
-TARGET = sieve
+TARGET = scheduler
 
 
 
