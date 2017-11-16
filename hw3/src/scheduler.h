@@ -4,7 +4,8 @@
 #include "processList.h"
 
 class scheduler {
-	void schedule(processList*);
+	public:
+	scheduler(processList*);
 	int tick();
 };
 

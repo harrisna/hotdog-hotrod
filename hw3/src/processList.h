@@ -20,6 +20,7 @@ class processList {
 	
 	void print();
 	
+	private:
 	processNode* head;
 };
 
