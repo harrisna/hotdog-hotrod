@@ -36,7 +36,15 @@ processList::processList(char* fileName) {
 		// validate input TODO: actually validate
 		bool invalid = false;
 
+		invalid = invalid || last->burst < 1;
+		invalid = invalid || last->arrival < 1;
+		invalid = invalid || last->priority < 0;
+		invalid = invalid || last->io < 0;
+		invalid = invalid || last->deadline < last->arrival;
+
 		if (invalid) {
+			printf("Invalid Process!!\n");
+			printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", last->pid, last->burst, last->arrival, last->priority, last->deadline, last->io);
 			delete last;
 			prev->next = NULL;
 			last = prev;
