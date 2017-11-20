@@ -9,19 +9,19 @@ struct processNode {
 	int deadline;
 	int io;
 
-	processNode* next;
+	processNode *next;
 };
 
 class processList {
 	public:
-	processList(char* fileName);
+	processList(char *fileName);
 	
-	void sort();
-	
+	void sortByArrival();
 	void print();
 	
 	private:
-	processNode* head;
+	processNode *head;
+	int length;
 };
 
 #endif

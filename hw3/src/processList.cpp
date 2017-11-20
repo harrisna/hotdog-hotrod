@@ -1,11 +1,14 @@
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include "processList.h"
 
 processList::processList(char* fileName) {	
 	// read list from file
 	// TODO: error checking
+	length = 0;
+	
 	FILE* f = fopen(fileName, "r");
 
 	processNode* last = NULL;
@@ -48,6 +51,8 @@ processList::processList(char* fileName) {
 			delete last;
 			prev->next = NULL;
 			last = prev;
+		} else {
+			length++;
 		}
 	}
 
@@ -64,4 +69,84 @@ void processList::print() {
 	}
 }
 
+#define parentNode(N) ((N-1)/2)
+#define leftChild(N) ((2*N)+1)
+#define rightChild(N) ((2*N)+2)
 
+void processList::sortByArrival() {
+	// heap sort by arrival time
+	processNode **procArray = (processNode **) malloc(sizeof(processNode *) * length);
+
+	// insert all nodes into heap
+	processNode *current = head;
+	for (int i = 0; i < length; i++) {
+		procArray[i] = current;
+		current = current->next;
+
+		int ind = i;
+		
+		while(1) {
+			if (ind == 0)
+				break;
+			
+			if (procArray[ind]->arrival < procArray[parentNode(ind)]->arrival) {
+				processNode *tmp = procArray[ind];
+				procArray[ind] = procArray[parentNode(ind)];
+				procArray[parentNode(ind)] = tmp;
+
+				ind = parentNode(ind);
+			} else {
+				break;
+			}
+		}
+	}
+
+	// remove all references in list
+	for (int i = 0; i < length; i++) {
+		procArray[i]->next = NULL;
+	}
+
+	// remove all nodes to sort
+	processNode **node = &head;
+	int remlen = length;
+	for (int i = 0; i < length; i++) {
+		processNode *top = procArray[0];
+		
+		processNode *tmp = procArray[remlen - 1];
+		procArray[0] = tmp;
+		procArray[remlen - 1] = NULL;	// TODO: remove
+		remlen--;
+
+		int ind = 0;
+		
+		// sift down
+		while(1) {
+			if (leftChild(ind) < remlen && leftChild(ind) > 0) {
+				int sc;
+				if (rightChild(ind) < remlen && rightChild(ind) > 0) {
+					if (procArray[leftChild(ind)]->arrival > procArray[rightChild(ind)]->arrival)
+						sc = rightChild(ind);
+					else
+						sc = leftChild(ind);
+				} else {
+					sc = leftChild(ind);
+				}
+
+				if (procArray[ind]->arrival > procArray[sc]->arrival) {
+					processNode *tmp = procArray[ind];
+					procArray[ind] = procArray[sc];
+					procArray[sc] = tmp;
+
+					ind = sc;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+			
+		*node = top;
+		node = &((*node)->next);
+	}
+}
