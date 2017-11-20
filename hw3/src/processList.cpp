@@ -149,4 +149,6 @@ void processList::sortByArrival() {
 		*node = top;
 		node = &((*node)->next);
 	}
+
+	free(procArray);
 }
