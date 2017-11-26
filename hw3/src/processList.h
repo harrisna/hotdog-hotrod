@@ -9,14 +9,21 @@ struct processNode {
 	int deadline;
 	int io;
 
+	int timeLeft;
+
 	processNode *next;
 };
 
 class processList {
 	public:
 	processList(char *fileName);
+
+	processNode *peek();
+	void enqueue(processNode *p);
+	processNode *dequeue();
 	
 	void sortByArrival();
+	void sortByDeadline();
 	void print();
 	
 	private:

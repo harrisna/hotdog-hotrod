@@ -59,6 +59,31 @@ processList::processList(char* fileName) {
 	fclose(f);
 }
 
+processNode *processList::peek() {
+	return head;
+}
+
+void processList::enqueue(processNode *p) {
+	p->next = NULL;
+
+	if (head != NULL) {
+		processNode *node = head;
+
+		while (node->next != NULL)
+			node = node->next;
+
+		node->next = p;
+	} else {
+		head = p;
+	}
+}
+
+processNode *processList::dequeue() {
+	processNode *result = head;
+	head = head->next;
+	return result;
+}
+
 void processList::print() {
 	// debugging print of the whole process list
 	processNode* node = head;
@@ -133,6 +158,86 @@ void processList::sortByArrival() {
 				}
 
 				if (procArray[ind]->arrival > procArray[sc]->arrival) {
+					processNode *tmp = procArray[ind];
+					procArray[ind] = procArray[sc];
+					procArray[sc] = tmp;
+
+					ind = sc;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+			
+		*node = top;
+		node = &((*node)->next);
+	}
+
+	free(procArray);
+}
+
+void processList::sortByDeadline() {
+	// heap sort by arrival time
+	processNode **procArray = (processNode **) malloc(sizeof(processNode *) * length);
+
+	// insert all nodes into heap
+	processNode *current = head;
+	for (int i = 0; i < length; i++) {
+		procArray[i] = current;
+		current = current->next;
+
+		int ind = i;
+		
+		while(1) {
+			if (ind == 0)
+				break;
+			
+			if (procArray[ind]->deadline < procArray[parentNode(ind)]->deadline) {
+				processNode *tmp = procArray[ind];
+				procArray[ind] = procArray[parentNode(ind)];
+				procArray[parentNode(ind)] = tmp;
+
+				ind = parentNode(ind);
+			} else {
+				break;
+			}
+		}
+	}
+
+	// remove all references in list
+	for (int i = 0; i < length; i++) {
+		procArray[i]->next = NULL;
+	}
+
+	// remove all nodes to sort
+	processNode **node = &head;
+	int remlen = length;
+	for (int i = 0; i < length; i++) {
+		processNode *top = procArray[0];
+		
+		processNode *tmp = procArray[remlen - 1];
+		procArray[0] = tmp;
+		procArray[remlen - 1] = NULL;	// TODO: remove
+		remlen--;
+
+		int ind = 0;
+		
+		// sift down
+		while(1) {
+			if (leftChild(ind) < remlen && leftChild(ind) > 0) {
+				int sc;
+				if (rightChild(ind) < remlen && rightChild(ind) > 0) {
+					if (procArray[leftChild(ind)]->deadline > procArray[rightChild(ind)]->deadline)
+						sc = rightChild(ind);
+					else
+						sc = leftChild(ind);
+				} else {
+					sc = leftChild(ind);
+				}
+
+				if (procArray[ind]->deadline > procArray[sc]->deadline) {
 					processNode *tmp = procArray[ind];
 					procArray[ind] = procArray[sc];
 					procArray[sc] = tmp;

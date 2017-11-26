@@ -3,8 +3,17 @@
 
 #include "scheduler.h"
 
+#include "processList.h"
+
 class scheduler_rts: public scheduler {
-	void schedule(processList*);
+	private:
+	processList *ps;
+	processList *queue;
+	int currentTick;
+
+	public:
+	void scheduler(processList*);
+	void tick();
 };
 
 #endif
