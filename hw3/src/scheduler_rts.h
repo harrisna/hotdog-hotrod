@@ -7,14 +7,15 @@
 
 class scheduler_rts: public scheduler {
 	private:
-	processNode *cpu;
-	processList *incoming;
+	//processNode *cpu;
+	//processList *incoming;
+	processList *out;
 	processList *queue;
 	int currentTick;
 
 	public:
-	void scheduler(processList*);
-	void tick();
+	scheduler_rts(processList*);
+	bool tick();
 };
 
 #endif

@@ -11,7 +11,7 @@ CC = g++
 LIBS += 
 endif
 
-SRC = src/main.cpp src/processList.cpp src/scheduler_rts.cpp
+SRC = src/main.cpp src/processList.cpp src/scheduler_rts.cpp 
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 TARGET = scheduler
 
@@ -22,10 +22,10 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) $(INCLUDE)
 
-obj/%.o: src/%.c src/%.h
+obj/%.o: src/%.cpp src/%.h
 	$(CC) $(CFLAGS) -c $< -o $@ $(INCLUDE)
 
-obj/%.o: src/%.c
+obj/%.o: src/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@ $(INCLUDE)
 
 clean:

@@ -4,9 +4,13 @@
 #include "processList.h"
 
 class scheduler {
+	protected:
+	processList* incoming;
+	processNode* cpu;
+	
 	public:
-	scheduler(processList*);
-	int tick();
+	//virtual scheduler(processList*);
+	virtual bool tick() {return 0;}
 };
 
 #endif

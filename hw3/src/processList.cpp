@@ -4,6 +4,10 @@
 #include <cstring>
 #include "processList.h"
 
+processList::processList() {
+	head = NULL;
+}
+
 processList::processList(char* fileName) {	
 	// read list from file
 	// TODO: error checking

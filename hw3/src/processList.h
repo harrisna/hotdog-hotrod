@@ -16,6 +16,7 @@ struct processNode {
 
 class processList {
 	public:
+	processList();
 	processList(char *fileName);
 
 	processNode *peek();
