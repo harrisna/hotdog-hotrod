@@ -7,7 +7,8 @@
 
 class scheduler_rts: public scheduler {
 	private:
-	processList *ps;
+	processNode *cpu;
+	processList *incoming;
 	processList *queue;
 	int currentTick;
 

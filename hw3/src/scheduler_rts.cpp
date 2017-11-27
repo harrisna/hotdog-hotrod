@@ -11,9 +11,9 @@ void scheduler_rts::tick() {
 	currentTick++;
 	
 	while (1) {
-		processNode *p = ps->peek();
+		processNode *p = incoming->peek();
 		if (p->arrival == currentTick) {
-			p = ps->dequeue();
+			p = incoming->dequeue();
 			// TODO: check if deadline is reasonable, if not, get rid of p
 			queue->enqueue(p);
 		} else {
@@ -23,10 +23,11 @@ void scheduler_rts::tick() {
 
 	queue->sortByDeadline();
 
-	processNode *p = queue->peek();
+	cpu = queue->peek();
 	// TODO: have "cpu" var that holds current process in cpu
-	p->timeLeft--;
-
-	if (p->timeLeft == 0)
+	cpu->timeLeft--;
+	
+	if (cpu->timeLeft == 0) {
 		queue->dequeue();
+	}
 }
