@@ -34,7 +34,9 @@ bool scheduler_rts::tick() {
 			processNode *p = queue->dequeue();	// TODO: yell something
 			delete p;
 		}
+	}
 
+	if (cpu != NULL) {
 		cpu = queue->peek();
 		cpu->timeLeft--;
 		
@@ -45,5 +47,5 @@ bool scheduler_rts::tick() {
 		}
 	}
 
-	return (queue->peek() != NULL);
+	return (queue->peek() == NULL);
 }

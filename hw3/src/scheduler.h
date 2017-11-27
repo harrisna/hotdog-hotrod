@@ -10,7 +10,7 @@ class scheduler {
 	
 	public:
 	//virtual scheduler(processList*);
-	virtual bool tick() {return 0;}
+	virtual bool tick() {return true;}
 };
 
 #endif

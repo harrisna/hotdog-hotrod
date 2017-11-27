@@ -17,7 +17,8 @@ int main(int argc, char** argv) {
 	processList* start = new processList(argv[1]);
 	scheduler_rts* s = new scheduler_rts(start);
 
-	while (s->tick());
+	while (s->tick())
+		printf("tick");
 
 	return 0;
 }

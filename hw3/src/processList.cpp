@@ -6,6 +6,7 @@
 
 processList::processList() {
 	head = NULL;
+	length = 0;
 }
 
 processList::processList(char* fileName) {	
@@ -43,10 +44,10 @@ processList::processList(char* fileName) {
 		// validate input TODO: actually validate
 		bool invalid = false;
 
-		invalid = invalid || last->burst < 1;
+		//invalid = invalid || last->burst < 1;
 		invalid = invalid || last->arrival < 1;
-		invalid = invalid || last->priority < 0;
-		invalid = invalid || last->io < 0;
+		//invalid = invalid || last->priority < 0;
+		//invalid = invalid || last->io < 0;
 		invalid = invalid || last->deadline < last->arrival;
 
 		if (invalid) {
@@ -85,6 +86,7 @@ void processList::enqueue(processNode *p) {
 processNode *processList::dequeue() {
 	processNode *result = head;
 	head = head->next;
+	result->next = NULL;
 	return result;
 }
 
@@ -183,7 +185,7 @@ void processList::sortByArrival() {
 }
 
 void processList::sortByDeadline() {
-	// heap sort by arrival time
+	// heap sort by deadline
 	processNode **procArray = (processNode **) malloc(sizeof(processNode *) * length);
 
 	// insert all nodes into heap
