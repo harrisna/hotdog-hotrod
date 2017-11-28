@@ -6,56 +6,61 @@
 
 processList::processList() {
 	head = NULL;
+	tail = NULL;
 	length = 0;
 }
 
 processList::processList(char* fileName) {	
 	// read list from file
 	// TODO: error checking
+	head = NULL;
+	tail = NULL;
 	length = 0;
 	
 	FILE* f = fopen(fileName, "r");
 
-	processNode* last = NULL;
-	processNode* prev = NULL;
-
 	fscanf(f, "%*[^\n]\n", NULL);	// skip the header
 
 	while(1) {
-		if (last == NULL) {
-			last = new processNode();
-			head = last;
+		if (tail == NULL) {
+			tail = new processNode();
+			tail->next = NULL;
+			tail->prev = NULL;
+			head = tail;
 		} else {
-			last->next = new processNode();
-			prev = last;
-			last = last->next;
+			tail->next = new processNode();
+			tail->next->prev = tail;
+			tail = tail->next;
+			tail->next = NULL;
 		}
 
-		if (fscanf(f, "%d\t%d\t%d\t%d\t%d\t%d\n", &last->pid, &last->burst, &last->arrival, &last->priority, &last->deadline, &last->io) == EOF) {
+		if (fscanf(f, "%d\t%d\t%d\t%d\t%d\t%d\n", &tail->pid, &tail->burst, &tail->arrival, &tail->priority, &tail->deadline, &tail->io) == EOF) {
 			// done reading, remove the invalid last node
-			delete last;
-			prev->next = NULL;
-			last = prev;
+			tail = tail->prev;
+			delete tail->next;
+			tail->next = NULL;
 
 			break;
 		}
-		last->next = NULL;
+		tail->timeLeft = tail->burst;
+		tail->next = NULL;
 
 		// validate input TODO: actually validate
 		bool invalid = false;
 
-		//invalid = invalid || last->burst < 1;
-		invalid = invalid || last->arrival < 1;
-		//invalid = invalid || last->priority < 0;
-		//invalid = invalid || last->io < 0;
-		invalid = invalid || last->deadline < last->arrival;
+		invalid = invalid || tail->burst < 1;
+		invalid = invalid || tail->arrival < 1;
+		//invalid = invalid || tail->priority < 0;
+		//invalid = invalid || tail->io < 0;
+		invalid = invalid || tail->deadline < tail->arrival;
 
 		if (invalid) {
 			printf("Invalid Process!!\n");
-			printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", last->pid, last->burst, last->arrival, last->priority, last->deadline, last->io);
-			delete last;
-			prev->next = NULL;
-			last = prev;
+			printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", tail->pid, tail->burst, tail->arrival, tail->priority, tail->deadline, tail->io);
+
+			tail = tail->prev;
+			delete tail->next;
+			tail->next = NULL;
 		} else {
 			length++;
 		}
@@ -69,24 +74,39 @@ processNode *processList::peek() {
 }
 
 void processList::enqueue(processNode *p) {
+	if (p == NULL)
+		return;
+
 	p->next = NULL;
+	p->prev = NULL;
 
-	if (head != NULL) {
-		processNode *node = head;
-
-		while (node->next != NULL)
-			node = node->next;
-
-		node->next = p;
+	if (tail != NULL) {
+		tail->next = p;
+		p->prev = tail;
+		tail = p;
 	} else {
 		head = p;
+		tail = p;
 	}
+
+	length++;
 }
 
 processNode *processList::dequeue() {
 	processNode *result = head;
+
 	head = head->next;
+
+	if (head == NULL)
+		tail = NULL;
+	else
+		head->prev = NULL;
+
+	result->prev = NULL;
 	result->next = NULL;
+	
+	length--;
+
 	return result;
 }
 
@@ -97,6 +117,12 @@ void processList::print() {
 	while(node != NULL) {
 		printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", node->pid, node->burst, node->arrival, node->priority, node->deadline, node->io);
 		node = node->next;
+	}
+	printf("take it back now ya'll\n");
+	node = tail;
+	while(node != NULL) {
+		printf("pid %d, burst %d, arrival %d, priority %d, deadline %d, io %d\n", node->pid, node->burst, node->arrival, node->priority, node->deadline, node->io);
+		node = node->prev;
 	}
 }
 
@@ -135,10 +161,12 @@ void processList::sortByArrival() {
 	// remove all references in list
 	for (int i = 0; i < length; i++) {
 		procArray[i]->next = NULL;
+		procArray[i]->prev = NULL;
 	}
 
 	// remove all nodes to sort
 	processNode **node = &head;
+	processNode *prevNode = NULL;
 	int remlen = length;
 	for (int i = 0; i < length; i++) {
 		processNode *top = procArray[0];
@@ -178,6 +206,9 @@ void processList::sortByArrival() {
 		}
 			
 		*node = top;
+		top->prev = prevNode;
+		tail = *node;
+		prevNode = *node;
 		node = &((*node)->next);
 	}
 
@@ -215,10 +246,12 @@ void processList::sortByDeadline() {
 	// remove all references in list
 	for (int i = 0; i < length; i++) {
 		procArray[i]->next = NULL;
+		procArray[i]->prev = NULL;
 	}
 
 	// remove all nodes to sort
 	processNode **node = &head;
+	processNode *prevNode = NULL;
 	int remlen = length;
 	for (int i = 0; i < length; i++) {
 		processNode *top = procArray[0];
@@ -258,6 +291,9 @@ void processList::sortByDeadline() {
 		}
 			
 		*node = top;
+		top->prev = prevNode;
+		tail = *node;
+		prevNode = *node;
 		node = &((*node)->next);
 	}
 

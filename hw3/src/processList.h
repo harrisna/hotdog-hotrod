@@ -1,6 +1,8 @@
 #ifndef _PROCESSLIST_H_
 #define _PROCESSLIST_H_
 
+#include <iostream>
+
 struct processNode {
 	int pid;
 	int burst;
@@ -12,6 +14,7 @@ struct processNode {
 	int timeLeft;
 
 	processNode *next;
+	processNode *prev;
 };
 
 class processList {
@@ -29,6 +32,7 @@ class processList {
 	
 	private:
 	processNode *head;
+	processNode *tail;
 	int length;
 };
 
