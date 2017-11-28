@@ -1,15 +1,20 @@
 #ifndef _SCHEDULER_H_
 #define _SCHEDULER_H_
 
-#include "processList.h"
+#include <queue>
+#include <vector>
+
+#include "process.h"
 
 class scheduler {
 	protected:
-	processList* incoming;
-	processNode* cpu;
+	std::priority_queue<process, std::vector<process>, procCmpArrival> incoming;
+	std::queue<process> out;
+	bool cpuOccupied;
+	process cpu;
 	
 	public:
-	//virtual scheduler(processList*);
+	scheduler(char*);
 	virtual bool tick() {return true;}
 };
 

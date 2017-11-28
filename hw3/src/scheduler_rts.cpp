@@ -5,58 +5,56 @@
 #include "scheduler.h"
 #include "processList.h"
 
-
-scheduler_rts::scheduler_rts(processList* pl) {
-	pl->sortByArrival();
-	currentTick = 0;
-	incoming = pl;
-	queue = new processList();
-	cpu = NULL;
+scheduler_rts::scheduler_rts(char* filename, bool soft)
+	: scheduler(filename) {
+	this->soft = soft;
 };
 
 bool scheduler_rts::tick() {
-	currentTick++;
-	
 	// place processes into the queue
-	while (1) {
-		processNode *p = incoming->peek();
-		if (p == NULL) {
-			break;
-		} else if (p->arrival == currentTick) {
-			queue->enqueue(incoming->dequeue());
+	while (!incoming.empty()) {
+		process p = incoming.top();
+		if (p.arrival == currentTick) {
+			//printf("scheduling\n");
+			queue.push(incoming.top());
+			incoming.pop();
 		} else {
 			break;
 		}
 	}
 
-	if (queue->peek() != NULL) {
+	if (!queue.empty()) {
 		//queue->sortByDeadline();
 
 		// fail processes that have exceeded their deadline
-		/*
-		while (queue->peek() != NULL && queue->peek()->deadline < currentTick) {
-			processNode *p = queue->dequeue();	// TODO: yell something
-			printf("OOPS\n");
-			delete p;
+		if (!soft) {
+			while (!queue.empty() && queue.top().deadline < currentTick) {
+				queue.pop();
+				printf("OOPS\n");
+			}
 		}
-		*/
 
-		if (cpu == NULL || (queue->peek() != NULL && queue->peek()->deadline < cpu->deadline)) {
-			cpu = queue->peek();
+		if (!cpuOccupied || (!queue.empty() && queue.top().deadline < cpu.deadline)) {
+			//printf("CPU\n");
+			cpu = queue.top();
+			cpuOccupied = true;
 		}
 	}
 
-	if (cpu != NULL) {
-		cpu->timeLeft--;
+	if (cpuOccupied) {
+		cpu.timeLeft--;
 		
 		// if the process is finished, get rid of it
-		if (cpu->timeLeft == 0) {
-			//printf("FUCK %d\n", currentTick);
-			queue->dequeue();
-			// add to out list
-			cpu = NULL;
+		if (cpu.timeLeft == 0) {
+			//printf("FINISHED %d\n", currentTick);
+			out.push(queue.top());
+			queue.pop();
+			cpuOccupied = false;
 		}
 	}
 
-	return (queue->peek() == NULL && incoming->peek() == NULL);
+	//printf("TICK %d\n", currentTick);
+	currentTick++;
+
+	return (queue.empty() && incoming.empty());
 }
