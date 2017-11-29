@@ -24,8 +24,6 @@ bool scheduler_rts::tick() {
 	}
 
 	if (!queue.empty()) {
-		//queue->sortByDeadline();
-
 		// fail processes that have exceeded their deadline
 		if (!soft) {
 			while (!queue.empty() && queue.top().deadline < currentTick) {
@@ -34,9 +32,14 @@ bool scheduler_rts::tick() {
 			}
 		}
 
-		if (!cpuOccupied || (!queue.empty() && queue.top().deadline < cpu.deadline)) {
-			//printf("CPU\n");
+		if (!queue.empty() && (!cpuOccupied || queue.top().deadline < cpu.deadline)) {
+			if (cpuOccupied) {
+				queue.push(cpu);
+				printf("EVICT %d FOR %d\n", cpu.pid, queue.top().pid);
+			}
 			cpu = queue.top();
+			queue.pop();
+			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
 		}
 	}
@@ -47,8 +50,7 @@ bool scheduler_rts::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d\n", currentTick);
-			out.push(queue.top());
-			queue.pop();
+			out.push(cpu);
 			cpuOccupied = false;
 		}
 	}

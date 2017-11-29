@@ -10,6 +10,9 @@ class scheduler {
 	protected:
 	std::priority_queue<process, std::vector<process>, procCmpArrival> incoming;
 	std::queue<process> out;
+
+	int currentTick;
+
 	bool cpuOccupied;
 	process cpu;
 	

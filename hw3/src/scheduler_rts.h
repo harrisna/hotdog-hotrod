@@ -12,7 +12,6 @@ class scheduler_rts: public scheduler {
 	//processNode *cpu;
 	//processList *incoming;
 	std::priority_queue<process, std::vector<process>, procCmpDeadline> queue;
-	int currentTick;
 	bool soft;
 
 	public:

@@ -10,6 +10,7 @@ struct process {
 	int io;
 
 	int timeLeft;
+	int waitStart;
 };
 
 struct procCmpArrival {
@@ -18,7 +19,35 @@ struct procCmpArrival {
 	}
 };
 
+struct procCmpArrivalMFQS {
+	bool operator()(process const &a, process const &b) {
+		if (a.arrival == b.arrival) {
+			if (a.priority == b.priority)
+				return a.pid > b.pid;
+			else
+				return a.priority > b.priority;
+		} else {
+			return a.arrival > b.arrival;
+		}
+	}
+};
+
+struct procCmpArrivalWHS {
+	bool operator()(process const &a, process const &b) {
+		if (a.arrival == b.arrival)
+			return a.priority < b.priority;
+		else
+			return a.arrival > b.arrival;
+	}
+};
+
 struct procCmpDeadline {
+	bool operator()(process const &a, process const &b) {
+		return a.deadline > b.deadline;
+	}
+};
+
+struct procCmpPriority {
 	bool operator()(process const &a, process const &b) {
 		return a.deadline > b.deadline;
 	}
