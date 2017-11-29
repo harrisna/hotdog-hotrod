@@ -10,7 +10,10 @@ struct process {
 	int io;
 
 	int timeLeft;
+	int ioStart;
 	int waitStart;
+
+	int queue;
 };
 
 struct procCmpArrival {
@@ -38,6 +41,19 @@ struct procCmpArrivalWHS {
 			return a.priority < b.priority;
 		else
 			return a.arrival > b.arrival;
+	}
+};
+
+struct procCmpIOMFQS {
+	bool operator()(process const &a, process const &b) {
+		if (a.ioStart == b.ioStart) {
+			if (a.priority == b.priority)
+				return a.pid > b.pid;
+			else
+				return a.priority > b.priority;
+		} else {
+			return a.arrival > b.arrival;
+		}
 	}
 };
 

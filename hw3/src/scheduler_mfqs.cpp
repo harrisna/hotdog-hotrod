@@ -27,6 +27,18 @@ bool scheduler_mfqs::tick() {
 		}
 	}
 
+	while (!wait.empty()) {
+		process p = wait.top();
+		if (p.ioStart + p.io == currentTick) {
+			//printf("scheduling\n");
+			//printf("TOP: %d\n", incoming.top().pid);
+			queue[p.queue].push(wait.top());
+			wait.pop();
+		} else {
+			break;
+		}
+	}
+
 	if (!cpuOccupied) {
 		// find first non-empty queue if possible
 		timeQuantum = baseTimeQuantum;
@@ -41,6 +53,7 @@ bool scheduler_mfqs::tick() {
 			queue[i].pop();
 			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
+			cpu.queue = i;
 			if (i < numQueues - 1) {
 				demoteQueue = i + 1;
 			} else {
@@ -81,7 +94,13 @@ bool scheduler_mfqs::tick() {
 			cpuOccupied = false;
 			cpu.waitStart = currentTick;
 			queue[demoteQueue].push(cpu);
-			// TODO: demote
+		} else if (timeQuantum == 1) {
+			// do i/o
+			cpuOccupied = false;
+			cpu.ioStart = currentTick;
+			if (cpu.queue != 0)
+				cpu.queue--; 
+			wait.push(cpu);
 		}
 	}
 
