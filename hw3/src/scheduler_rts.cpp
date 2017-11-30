@@ -58,7 +58,8 @@ bool scheduler_rts::tick() {
 		if (!soft) {
 			while (!queue.empty() && queue.top().deadline < currentTick) {
 				queue.pop();
-				//printf("OOPS\n");
+				printf("pid %d passed deadline!  Exiting...\n", queue.top().pid);
+				return 1;
 			}
 		}
 
