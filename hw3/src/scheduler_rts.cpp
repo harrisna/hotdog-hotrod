@@ -22,6 +22,24 @@ scheduler_rts::scheduler_rts(char* filename, bool soft)
 	this->soft = soft;
 };
 
+scheduler_rts::scheduler_rts(std::queue<process> procQueue, bool soft)
+	: scheduler(procQueue) {
+	while (!incoming_unsorted.empty()) {
+		process p = incoming_unsorted.front();
+		incoming_unsorted.pop();
+
+		bool invalid = false;
+	
+		invalid = invalid || p.burst < 1;
+		invalid = invalid || p.arrival < 1;
+		invalid = invalid || p.deadline <= p.arrival;
+		
+		if (!invalid)
+			incoming.push(p);
+	}
+	this->soft = soft;
+};
+
 bool scheduler_rts::tick() {
 	// place processes into the queue
 	while (!incoming.empty()) {
@@ -40,16 +58,23 @@ bool scheduler_rts::tick() {
 		if (!soft) {
 			while (!queue.empty() && queue.top().deadline < currentTick) {
 				queue.pop();
-				printf("OOPS\n");
+				//printf("OOPS\n");
 			}
 		}
 
 		if (!queue.empty() && (!cpuOccupied || queue.top().deadline < cpu.deadline)) {
 			if (cpuOccupied) {
+				cpuGantt.end = currentTick;
+				chart.push(cpuGantt);
+
 				queue.push(cpu);
 				printf("EVICT %d FOR %d\n", cpu.pid, queue.top().pid);
 			}
 			cpu = queue.top();
+
+			cpuGantt.pid = cpu.pid;
+			cpuGantt.start = currentTick;
+
 			queue.pop();
 			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
@@ -62,7 +87,14 @@ bool scheduler_rts::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d\n", currentTick);
+			avgWait += currentTick - cpu.arrival - cpu.burst;
+			avgTurnaround += currentTick - cpu.arrival;
+
+			cpuGantt.end = currentTick;
+			chart.push(cpuGantt);
+
 			out.push(cpu);
+
 			cpuOccupied = false;
 		}
 	}

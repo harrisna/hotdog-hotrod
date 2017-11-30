@@ -16,9 +16,16 @@ struct process {
 	int queue;
 };
 
-struct procCmpArrival {
+struct procCmpArrivalRTS {
 	bool operator()(process const &a, process const &b) {
-		return a.arrival > b.arrival;
+		if (a.arrival == b.arrival) {
+			if (a.deadline == b.deadline)
+				return a.burst > b.burst;
+			else
+				return a.deadline > b.deadline;
+		} else {
+			return a.arrival > b.arrival;
+		}
 	}
 };
 
@@ -76,13 +83,21 @@ struct procCmpIOWHS {
 
 struct procCmpDeadline {
 	bool operator()(process const &a, process const &b) {
-		return a.deadline > b.deadline;
+		//return a.deadline > b.deadline;
+		if (a.deadline == b.deadline) {
+			if (a.timeLeft == b.timeLeft)
+				return a.arrival > b.arrival;
+			else
+				return a.timeLeft > b.timeLeft;
+		} else {
+			return a.deadline > b.deadline;
+		}
 	}
 };
 
 struct procCmpPriority {
 	bool operator()(process const &a, process const &b) {
-		return a.deadline > b.deadline;
+		return a.priority > b.priority;
 	}
 };
 

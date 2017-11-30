@@ -22,6 +22,7 @@ class scheduler_whs: public scheduler {
 
 	public:
 	scheduler_whs(char*, int baseTimeQuantum, int agingThreshold);
+	scheduler_whs(std::queue<process>, int baseTimeQuantum, int agingThreshold);
 	bool tick();
 };
 

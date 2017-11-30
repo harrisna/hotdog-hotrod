@@ -28,6 +28,30 @@ scheduler_mfqs::scheduler_mfqs(char* filename, int numQueues, int baseTimeQuantu
 	this->agingThreshold = agingThreshold;
 };
 
+scheduler_mfqs::scheduler_mfqs(std::queue<process> procQueue, int numQueues, int baseTimeQuantum, int agingThreshold)
+	: scheduler(procQueue) {
+	while (!incoming_unsorted.empty()) {
+		process p = incoming_unsorted.front();
+		incoming_unsorted.pop();
+		
+		bool invalid = false;
+
+		invalid = invalid || p.burst < 1;
+		invalid = invalid || p.arrival < 1;
+		invalid = invalid || p.priority < 0;
+		invalid = invalid || p.priority > 99;
+		invalid = invalid || p.io < 0;
+
+		if (!invalid)
+			incoming.push(p);
+	}
+
+	this->numQueues = numQueues;
+	timeQuantum = 0;
+	this->baseTimeQuantum = baseTimeQuantum;
+	this->agingThreshold = agingThreshold;
+};
+
 bool scheduler_mfqs::tick() {
 	// place processes into the queue
 	while (!incoming.empty()) {
@@ -65,6 +89,10 @@ bool scheduler_mfqs::tick() {
 
 		if (i < numQueues) {
 			cpu = queue[i].front();
+
+			cpuGantt.pid = cpu.pid;
+			cpuGantt.start = currentTick;
+
 			queue[i].pop();
 			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
@@ -81,10 +109,11 @@ bool scheduler_mfqs::tick() {
 		process p = queue[numQueues-1].front();
 		queue[numQueues-1].pop();
 
-		if (currentTick - p.waitStart > agingThreshold)
-			p.queue++;
+		if (p.queue > 0 && currentTick - p.waitStart > agingThreshold)
+			p.queue--;	
 
 		queue[p.queue].push(p);
+
 	}
 
 	if (cpuOccupied) {
@@ -95,19 +124,34 @@ bool scheduler_mfqs::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d AT %d\n", cpu.pid, currentTick);
+			avgWait += currentTick - cpu.arrival - cpu.burst;
+			avgTurnaround += currentTick - cpu.arrival;
+
+			cpuGantt.end = currentTick;
+			chart.push(cpuGantt);
+
 			out.push(cpu);
+
 			cpuOccupied = false;
 			timeQuantum = 0;
 		} else if (timeQuantum == 0) {
 			// time quantum has expired, evict and demote
 			//printf("EVICT TO %d\n", demoteQueue);
 			cpuOccupied = false;
+
+			cpuGantt.end = currentTick;
+			chart.push(cpuGantt);
+
 			cpu.waitStart = currentTick;
 			cpu.queue++;
 			queue[cpu.queue].push(cpu);
-		} else if (timeQuantum == 1) {
+		} else if (cpu.io > 0 && timeQuantum == 1) {
 			// do i/o
 			cpuOccupied = false;
+
+			cpuGantt.end = currentTick;
+			chart.push(cpuGantt);
+
 			cpu.ioStart = currentTick;
 			if (cpu.queue != 0)
 				cpu.queue--; 
@@ -118,10 +162,12 @@ bool scheduler_mfqs::tick() {
 	//printf("TICK %d\n", currentTick);
 	currentTick++;
 
-	return (queue[0].empty() &&
+	return (!cpuOccupied &&
+		queue[0].empty() &&
 		queue[1].empty() &&
 		queue[2].empty() &&
 		queue[3].empty() &&
 		queue[4].empty() &&
-		incoming.empty());
+		incoming.empty() &&
+		wait.empty());
 }

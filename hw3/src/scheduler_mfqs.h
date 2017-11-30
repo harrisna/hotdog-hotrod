@@ -22,6 +22,7 @@ class scheduler_mfqs: public scheduler {
 
 	public:
 	scheduler_mfqs(char*, int numQueues, int baseTimeQuantum, int agingThreshold);
+	scheduler_mfqs(std::queue<process>, int numQueues, int baseTimeQuantum, int agingThreshold);
 	bool tick();
 };
 
