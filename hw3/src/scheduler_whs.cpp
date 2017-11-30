@@ -86,8 +86,10 @@ bool scheduler_whs::tick() {
 
 		if (i >= 0) {
 			cpu = queue[i].front();
+
 			cpuGantt.pid = cpu.pid;
 			cpuGantt.start = currentTick;
+
 			queue[i].pop();
 			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
@@ -113,10 +115,10 @@ bool scheduler_whs::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d AT %d\n", cpu.pid, currentTick);
-			avgWait += currentTick - cpu.arrival - cpu.burst;
-			avgTurnaround += currentTick - cpu.arrival;
+			avgWait += (currentTick + 1) - cpu.arrival - cpu.burst;
+			avgTurnaround += (currentTick + 1) - cpu.arrival;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
 			out.push(cpu);
@@ -128,10 +130,10 @@ bool scheduler_whs::tick() {
 			//printf("EVICT TO %d\n", demoteQueue);
 			cpuOccupied = false;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
-			cpu.waitStart = currentTick;
+			cpu.waitStart = currentTick + 1;
 			if (cpu.priority != 50 && cpu.priority != 0) {
 				cpu.priority--;
 			}
@@ -140,10 +142,10 @@ bool scheduler_whs::tick() {
 			// do i/o
 			cpuOccupied = false;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
-			cpu.ioStart = currentTick;
+			cpu.ioStart = currentTick + 1;
 			if ((cpu.priority < 50 - cpu.io && cpu.priority > 0) && (cpu.priority > 50 && cpu.priority < 100 - cpu.io)) {
 				cpu.priority += cpu.io; 
 			}

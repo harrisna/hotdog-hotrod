@@ -124,10 +124,10 @@ bool scheduler_mfqs::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d AT %d\n", cpu.pid, currentTick);
-			avgWait += currentTick - cpu.arrival - cpu.burst;
-			avgTurnaround += currentTick - cpu.arrival;
+			avgWait += (currentTick + 1) - cpu.arrival - cpu.burst;
+			avgTurnaround += (currentTick + 1) - cpu.arrival;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
 			out.push(cpu);
@@ -139,20 +139,20 @@ bool scheduler_mfqs::tick() {
 			//printf("EVICT TO %d\n", demoteQueue);
 			cpuOccupied = false;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
-			cpu.waitStart = currentTick;
+			cpu.waitStart = currentTick + 1;
 			cpu.queue++;
 			queue[cpu.queue].push(cpu);
 		} else if (cpu.io > 0 && timeQuantum == 1) {
 			// do i/o
 			cpuOccupied = false;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
-			cpu.ioStart = currentTick;
+			cpu.ioStart = currentTick + 1;
 			if (cpu.queue != 0)
 				cpu.queue--; 
 			wait.push(cpu);

@@ -87,10 +87,10 @@ bool scheduler_rts::tick() {
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
 			//printf("FINISHED %d\n", currentTick);
-			avgWait += currentTick - cpu.arrival - cpu.burst;
-			avgTurnaround += currentTick - cpu.arrival;
+			avgWait += (currentTick + 1) - cpu.arrival - cpu.burst;
+			avgTurnaround += (currentTick + 1) - cpu.arrival;
 
-			cpuGantt.end = currentTick;
+			cpuGantt.end = currentTick + 1;
 			chart.push(cpuGantt);
 
 			out.push(cpu);
