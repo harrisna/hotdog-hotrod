@@ -55,12 +55,13 @@ bool scheduler_rts::tick() {
 
 	if (!queue.empty()) {
 		// fail processes that have exceeded their deadline
-		if (!soft) {
-			while (!queue.empty() && queue.top().deadline < currentTick) {
-				queue.pop();
+		while (!queue.empty() && queue.top().deadline < currentTick) {
+			if (!soft) {
 				printf("pid %d passed deadline!  Exiting...\n", queue.top().pid);
 				return 1;
-			}
+			} 			
+			
+			queue.pop();
 		}
 
 		if (!queue.empty() && (!cpuOccupied || queue.top().deadline < cpu.deadline)) {
@@ -69,7 +70,7 @@ bool scheduler_rts::tick() {
 				chart.push(cpuGantt);
 
 				queue.push(cpu);
-				printf("EVICT %d FOR %d\n", cpu.pid, queue.top().pid);
+				//printf("EVICT %d FOR %d\n", cpu.pid, queue.top().pid);
 			}
 			cpu = queue.top();
 
@@ -96,6 +97,16 @@ bool scheduler_rts::tick() {
 
 			out.push(cpu);
 
+			cpuOccupied = false;
+		}
+		if (cpu.timeLeft > cpu.deadline - currentTick) {
+			printf ("pid %d cannot meet deadline, evicting...\n", cpu.pid);
+			avgWait += (currentTick + 1) - cpu.arrival - (cpu.burst - cpu.timeLeft);
+			avgTurnaround += (currentTick + 1) - cpu.arrival;
+
+			cpuGantt.end = currentTick + 1;
+			chart.push(cpuGantt);
+			
 			cpuOccupied = false;
 		}
 	}

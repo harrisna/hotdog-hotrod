@@ -20,7 +20,7 @@ struct procCmpArrivalRTS {
 	bool operator()(process const &a, process const &b) {
 		if (a.arrival == b.arrival) {
 			if (a.deadline == b.deadline)
-				return a.burst > b.burst;
+				return a.pid > b.pid;
 			else
 				return a.deadline > b.deadline;
 		} else {
@@ -85,10 +85,14 @@ struct procCmpDeadline {
 	bool operator()(process const &a, process const &b) {
 		//return a.deadline > b.deadline;
 		if (a.deadline == b.deadline) {
-			if (a.timeLeft == b.timeLeft)
-				return a.arrival > b.arrival;
-			else
+			if (a.timeLeft == b.timeLeft) {
+				if (a.arrival == b.arrival)
+					return a.pid > b.pid;
+				else
+					return a.arrival > b.arrival;
+			} else {
 				return a.timeLeft > b.timeLeft;
+			}
 		} else {
 			return a.deadline > b.deadline;
 		}

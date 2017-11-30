@@ -1,5 +1,7 @@
 #include "scheduler.h"
 
+#include <cstdio>
+
 #include <vector>
 #include <queue>
 
@@ -22,6 +24,8 @@ scheduler::scheduler(char* filename) {
 	cpuOccupied = false;
 	avgWait = 0;
 	avgTurnaround = 0;
+	
+	currentTick = 0;
 }
 
 scheduler::scheduler(std::queue<process> procQueue) {
