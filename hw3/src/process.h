@@ -37,10 +37,14 @@ struct procCmpArrivalMFQS {
 
 struct procCmpArrivalWHS {
 	bool operator()(process const &a, process const &b) {
-		if (a.arrival == b.arrival)
-			return a.priority < b.priority;
-		else
+		if (a.arrival == b.arrival) {
+			if (a.priority == b.priority)
+				return a.pid > b.pid;
+			else
+				return a.priority < b.priority;
+		} else {
 			return a.arrival > b.arrival;
+		}
 	}
 };
 
@@ -51,6 +55,19 @@ struct procCmpIOMFQS {
 				return a.pid > b.pid;
 			else
 				return a.priority > b.priority;
+		} else {
+			return a.arrival > b.arrival;
+		}
+	}
+};
+
+struct procCmpIOWHS {
+	bool operator()(process const &a, process const &b) {
+		if (a.ioStart == b.ioStart) {
+			if (a.priority == b.priority)
+				return a.pid > b.pid;
+			else
+				return a.priority < b.priority;
 		} else {
 			return a.arrival > b.arrival;
 		}

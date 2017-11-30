@@ -12,6 +12,7 @@ class scheduler_rts: public scheduler {
 	//processNode *cpu;
 	//processList *incoming;
 	std::priority_queue<process, std::vector<process>, procCmpDeadline> queue;
+	std::priority_queue<process, std::vector<process>, procCmpArrival> incoming;
 	bool soft;
 
 	public:

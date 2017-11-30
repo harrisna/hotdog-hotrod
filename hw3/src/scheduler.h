@@ -8,7 +8,7 @@
 
 class scheduler {
 	protected:
-	std::priority_queue<process, std::vector<process>, procCmpArrival> incoming;
+	std::queue<process> incoming_unsorted;
 	std::queue<process> out;
 
 	int currentTick;

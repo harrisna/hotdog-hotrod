@@ -12,6 +12,7 @@ class scheduler_mfqs: public scheduler {
 	int numQueues;
 	std::queue<process> queue[5];
 	std::priority_queue<process, std::vector<process>, procCmpIOMFQS> wait;
+	std::priority_queue<process, std::vector<process>, procCmpArrivalMFQS> incoming;
 
 	int baseTimeQuantum;
 	int agingThreshold;

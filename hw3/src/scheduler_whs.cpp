@@ -1,10 +1,10 @@
-#include "scheduler_mfqs.h"
+#include "scheduler_whs.h"
 
 #include <iostream>
 
 #include "scheduler.h"
 
-scheduler_mfqs::scheduler_mfqs(char* filename, int numQueues, int baseTimeQuantum, int agingThreshold)
+scheduler_whs::scheduler_whs(char* filename, int baseTimeQuantum, int agingThreshold)
 	: scheduler(filename) {
 	while (!incoming_unsorted.empty()) {
 		process p = incoming_unsorted.front();
@@ -18,24 +18,23 @@ scheduler_mfqs::scheduler_mfqs(char* filename, int numQueues, int baseTimeQuantu
 		invalid = invalid || p.priority > 99;
 		invalid = invalid || p.io < 0;
 
-		if (!invalid)
+		if (!invalid) 
 			incoming.push(p);
 	}
 
-	this->numQueues = numQueues;
 	timeQuantum = 0;
 	this->baseTimeQuantum = baseTimeQuantum;
 	this->agingThreshold = agingThreshold;
 };
 
-bool scheduler_mfqs::tick() {
+bool scheduler_whs::tick() {
 	// place processes into the queue
 	while (!incoming.empty()) {
 		process p = incoming.top();
 		if (p.arrival == currentTick) {
 			//printf("scheduling\n");
 			//printf("TOP: %d\n", incoming.top().pid);
-			queue[0].push(incoming.top());
+			queue[incoming.top().priority].push(incoming.top());
 			incoming.pop();
 		} else {
 			break;
@@ -57,40 +56,34 @@ bool scheduler_mfqs::tick() {
 	if (!cpuOccupied) {
 		// find first non-empty queue if possible
 		timeQuantum = baseTimeQuantum;
-		int i = 0;
-		while (queue[i].empty() && i < numQueues) {
-			i++;
-			timeQuantum = (timeQuantum / 2) + (timeQuantum % 2);
+		int i = 99;
+		while (queue[i].empty() && i >= 0) {
+			i--;
 		}
 
-		if (i < numQueues) {
+		if (i >= 0) {
 			cpu = queue[i].front();
 			queue[i].pop();
 			//printf("CPU = %d\n", cpu.pid);
 			cpuOccupied = true;
 			cpu.queue = i;
-			if (i == numQueues - 1) {
-				timeQuantum = -1;
-			}
+
 			//printf("running queue %d\n", i);
 		}
 	}
 
-	if (numQueues > 1 && !queue[numQueues-1].empty()) {
-		/* because only one process can be demoted at a time, there are no two processes with the same age, so only check the first */
-		process p = queue[numQueues-1].front();
-		queue[numQueues-1].pop();
-
-		if (currentTick - p.waitStart > agingThreshold)
-			p.queue++;
-
-		queue[p.queue].push(p);
+	for (int i = 0; i < 10; i++) {
+		while (!queue[i].empty() && currentTick - queue[i].front().waitStart > agingThreshold) {
+			process p = queue[i].front();
+			queue[i].pop();
+			p.priority++;
+			queue[p.priority].push(p);
+		}
 	}
 
 	if (cpuOccupied) {
 		cpu.timeLeft--;
-		if(timeQuantum > 0)
-			timeQuantum--;
+		timeQuantum--;
 		
 		// if the process is finished, get rid of it
 		if (cpu.timeLeft == 0) {
@@ -103,14 +96,17 @@ bool scheduler_mfqs::tick() {
 			//printf("EVICT TO %d\n", demoteQueue);
 			cpuOccupied = false;
 			cpu.waitStart = currentTick;
-			cpu.queue++;
-			queue[cpu.queue].push(cpu);
+			if (cpu.priority != 50 && cpu.priority != 0) {
+				cpu.priority--;
+			}
+			queue[cpu.priority].push(cpu);
 		} else if (timeQuantum == 1) {
 			// do i/o
 			cpuOccupied = false;
 			cpu.ioStart = currentTick;
-			if (cpu.queue != 0)
-				cpu.queue--; 
+			if ((cpu.priority < 50 - cpu.io && cpu.priority > 0) && (cpu.priority > 50 && cpu.priority < 100 - cpu.io)) {
+				cpu.priority += cpu.io; 
+			}
 			wait.push(cpu);
 		}
 	}
@@ -118,10 +114,12 @@ bool scheduler_mfqs::tick() {
 	//printf("TICK %d\n", currentTick);
 	currentTick++;
 
-	return (queue[0].empty() &&
-		queue[1].empty() &&
-		queue[2].empty() &&
-		queue[3].empty() &&
-		queue[4].empty() &&
+	bool queuesEmpty = true;
+	
+	for(int i = 0; i < 100; i++) {
+		queuesEmpty = queuesEmpty && queue[i].empty();
+	}
+
+	return (queuesEmpty &&
 		incoming.empty());
 }

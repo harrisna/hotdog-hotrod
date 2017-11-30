@@ -6,6 +6,7 @@
 #include "scheduler.h"
 #include "scheduler_rts.h"
 #include "scheduler_mfqs.h"
+#include "scheduler_whs.h"
 
 int main(int argc, char** argv) {
 	
@@ -17,12 +18,11 @@ int main(int argc, char** argv) {
 	//start->sortByArrival();
 	scheduler *s;
 	int number;
-	printf("Select Scheduler:\n 1. MFQS \n 2. RTS \n");
+	int numQueues, timeQuantum, ageTimer;
+	printf("Select Scheduler:\n 1. MFQS \n 2. RTS \n 3. WHS \n");
 	fscanf(stdin, "%d", &number);
 	switch (number) {
 	case 1:
-		int numQueues, timeQuantum, ageTimer;
-
 		printf("Enter number of queues\n");
 		fscanf(stdin, "%d", &numQueues);
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 		printf("Enter aging timer\n");
 		fscanf(stdin, "%d", &ageTimer);
 		
-		s = new scheduler_mfqs(argv[1], 5, 16, 64);
+		s = new scheduler_mfqs(argv[1], numQueues, timeQuantum, ageTimer);
 		break;
 	case 2:
 		int soft;
@@ -41,6 +41,15 @@ int main(int argc, char** argv) {
 		fscanf(stdin, "%d", &soft);
 
 		s = new scheduler_rts(argv[1], soft == 0);
+		break;
+	case 3:
+		printf("Enter time quantum\n");
+		fscanf(stdin, "%d", &timeQuantum);
+
+		printf("Enter aging timer\n");
+		fscanf(stdin, "%d", &ageTimer);
+		
+		s = new scheduler_whs(argv[1], timeQuantum, ageTimer);
 		break;
 	}
 

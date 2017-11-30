@@ -1,5 +1,5 @@
 LIBS =
-CFLAGS = -g
+CFLAGS = -g -O3
 INCLUDE =
 
 OS := $(shell uname)
@@ -11,7 +11,7 @@ CC = g++
 LIBS += 
 endif
 
-SRC = src/main.cpp src/scheduler.cpp src/scheduler_rts.cpp src/scheduler_mfqs.cpp
+SRC = src/main.cpp src/scheduler.cpp src/scheduler_rts.cpp src/scheduler_mfqs.cpp src/scheduler_whs.cpp
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 TARGET = scheduler
 

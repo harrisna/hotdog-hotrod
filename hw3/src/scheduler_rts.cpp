@@ -3,10 +3,22 @@
 #include <iostream>
 
 #include "scheduler.h"
-#include "processList.h"
 
 scheduler_rts::scheduler_rts(char* filename, bool soft)
 	: scheduler(filename) {
+	while (!incoming_unsorted.empty()) {
+		process p = incoming_unsorted.front();
+		incoming_unsorted.pop();
+
+		bool invalid = false;
+	
+		invalid = invalid || p.burst < 1;
+		invalid = invalid || p.arrival < 1;
+		invalid = invalid || p.deadline <= p.arrival;
+		
+		if (!invalid)
+			incoming.push(p);
+	}
 	this->soft = soft;
 };
 

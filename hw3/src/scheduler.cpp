@@ -12,20 +12,6 @@ scheduler::scheduler(char* filename) {
 		}
 		
 		p.timeLeft = p.burst;
-		
-		bool invalid = false;
-
-		invalid = invalid || p.burst < 1;
-		invalid = invalid || p.arrival < 1;
-		//invalid = invalid || p.priority < 0;
-		//invalid = invalid || p.io < 0;
-		invalid = invalid || p.deadline < p.arrival;
-
-		if (invalid) {
-			
-		} else {
-			incoming.push(p);
-		}
 	}
 
 	cpuOccupied = false;
