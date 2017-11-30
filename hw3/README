@@ -1,0 +1,10 @@
+TO BUILD:
+make
+
+TO RUN:
+
+manual input:
+./scheduler
+
+file input:
+./scheduler [filename]
